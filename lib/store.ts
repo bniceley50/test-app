@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { Question, DrillState, SessionMode, TopicStats } from './types';
-import { v4 as uuid } from 'uuid';
+import { uid } from './uid';
 
 interface AppStore {
   // Drill state
@@ -37,7 +37,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       questions,
       currentIndex: 0,
       answers: [],
-      sessionId: uuid(),
+      sessionId: uid(),
       mode,
       startTime: Date.now(),
     },

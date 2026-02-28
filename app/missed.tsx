@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView } fr
 import { useRouter } from 'expo-router';
 import { useAppStore } from '@/lib/store';
 import { getActiveMissedQuestions, recordAttempt, clearMissedQuestion, createSession, completeSession } from '@/lib/database';
-import { v4 as uuid } from 'uuid';
+import { uid } from '@/lib/uid';
 
 export default function MissedScreen() {
   const router = useRouter();
@@ -29,7 +29,7 @@ export default function MissedScreen() {
       startDrill(questions, 'missed');
 
       const session = {
-        id: uuid(),
+        id: uid(),
         mode: 'missed' as const,
         topic_filter: null,
         question_count: questions.length,
@@ -55,7 +55,7 @@ export default function MissedScreen() {
     answerQuestion(selected, correct, timeMs);
 
     await recordAttempt({
-      id: uuid(),
+      id: uid(),
       question_id: question.id,
       selected_answer: selected,
       is_correct: correct,

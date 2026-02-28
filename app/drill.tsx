@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView } fr
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAppStore } from '@/lib/store';
 import { getDrillQuestions, getTopicQuestions, recordAttempt, createSession, completeSession } from '@/lib/database';
-import { v4 as uuid } from 'uuid';
+import { uid } from '@/lib/uid';
 
 export default function DrillScreen() {
   const router = useRouter();
@@ -31,7 +31,7 @@ export default function DrillScreen() {
       startDrill(questions, params.topic ? 'topic' : 'drill');
 
       const session = {
-        id: uuid(),
+        id: uid(),
         mode: params.topic ? 'topic' as const : 'drill' as const,
         topic_filter: params.topic || null,
         question_count: questions.length,
@@ -57,7 +57,7 @@ export default function DrillScreen() {
     answerQuestion(selected, correct, timeMs);
 
     await recordAttempt({
-      id: uuid(),
+      id: uid(),
       question_id: question.id,
       selected_answer: selected,
       is_correct: correct,
