@@ -52,27 +52,19 @@ export default function HomeScreen() {
         <Text style={styles.drillButtonSub}>10 questions, ~5 minutes</Text>
       </TouchableOpacity>
 
-      {/* Secondary Actions */}
+      {/* Secondary Actions — Coming Soon */}
       <View style={styles.actionRow}>
-        <TouchableOpacity
-          style={styles.actionCard}
-          onPress={() => router.push('/missed')}
-          activeOpacity={0.8}
-        >
+        <View style={[styles.actionCard, styles.actionCardDisabled]}>
           <Text style={styles.actionIcon}>🔄</Text>
           <Text style={styles.actionTitle}>Missed Questions</Text>
-          <Text style={styles.actionSub}>Review what you got wrong</Text>
-        </TouchableOpacity>
+          <Text style={styles.actionSub}>Coming soon</Text>
+        </View>
 
-        <TouchableOpacity
-          style={styles.actionCard}
-          onPress={() => router.push('/mock')}
-          activeOpacity={0.8}
-        >
+        <View style={[styles.actionCard, styles.actionCardDisabled]}>
           <Text style={styles.actionIcon}>📝</Text>
           <Text style={styles.actionTitle}>Mock Exam</Text>
-          <Text style={styles.actionSub}>Timed practice test</Text>
-        </TouchableOpacity>
+          <Text style={styles.actionSub}>Coming soon</Text>
+        </View>
       </View>
 
       {/* Progress Bar */}
@@ -171,6 +163,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginHorizontal: 4,
+  },
+  actionCardDisabled: {
+    opacity: 0.5,
   },
   actionIcon: {
     fontSize: 24,

@@ -1,5 +1,4 @@
-export type QuestionType = 'multiple_choice' | 'fill_in_blank';
-export type ReviewStatus = 'draft' | 'reviewed' | 'approved' | 'retired';
+export type QuestionType = 'mcq' | 'fill_blank';
 export type SessionMode = 'drill' | 'missed' | 'topic' | 'mock_exam';
 export type Difficulty = 1 | 2 | 3;
 
@@ -8,15 +7,23 @@ export interface Question {
   prompt: string;
   type: QuestionType;
   choices: string[];
-  correct_answer: string;
+  answer: string;
   explanation: string;
   foreman_explanation: string;
   code_section: string;
-  code_text: string;
   topic: string;
   difficulty: Difficulty;
   tags: string[];
-  reviewed_status: ReviewStatus;
+  source: string;
+  verified: boolean;
+}
+
+export interface CodeSection {
+  id: string;
+  section: string;
+  title: string;
+  short_summary: string;
+  keywords: string[];
 }
 
 export interface QuestionAttempt {
@@ -49,16 +56,6 @@ export interface UserProgress {
   next_review: string;
   confidence_level: number;
   bookmarked: boolean;
-}
-
-export interface CodeSection {
-  id: string;
-  section_number: string;
-  title: string;
-  summary: string;
-  full_text: string;
-  parent_section: string | null;
-  sort_order: number;
 }
 
 export interface TopicStats {

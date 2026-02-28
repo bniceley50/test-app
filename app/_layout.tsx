@@ -3,8 +3,9 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { getDatabase, seedQuestions, seedCodeSections, getQuestionCount } from '@/lib/database';
-import { seedQuestions as questionData } from '@/data/questions';
-import { seedCodeSections as codeSectionData } from '@/data/code-sections';
+
+const questionData = require('@/data/questions.seed.json');
+const codeSectionData = require('@/data/code_sections.seed.json');
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -43,8 +44,6 @@ export default function RootLayout() {
       }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="drill" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
-        <Stack.Screen name="missed" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
-        <Stack.Screen name="mock" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
         <Stack.Screen name="results" options={{ headerShown: false, presentation: 'modal' }} />
       </Stack>
     </>

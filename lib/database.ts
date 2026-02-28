@@ -1,11 +1,11 @@
 import * as SQLite from 'expo-sqlite';
-import { Question, QuestionAttempt, StudySession, UserProgress, CodeSection, TopicStats } from './types';
+import { Question, QuestionAttempt, StudySession, CodeSection, TopicStats } from './types';
 
 let db: SQLite.SQLiteDatabase;
 
 export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
   if (!db) {
-    db = await SQLite.openDatabaseAsync('plumber_prep.db');
+    db = await SQLite.openDatabaseAsync('plumber_prep_v2.db');
     await initializeDatabase(db);
   }
   return db;
@@ -19,18 +19,17 @@ async function initializeDatabase(database: SQLite.SQLiteDatabase): Promise<void
     CREATE TABLE IF NOT EXISTS questions (
       id TEXT PRIMARY KEY,
       prompt TEXT NOT NULL,
-      type TEXT NOT NULL DEFAULT 'multiple_choice',
+      type TEXT NOT NULL DEFAULT 'mcq',
       choices TEXT NOT NULL DEFAULT '[]',
-      correct_answer TEXT NOT NULL,
+      answer TEXT NOT NULL,
       explanation TEXT NOT NULL DEFAULT '',
       foreman_explanation TEXT NOT NULL DEFAULT '',
       code_section TEXT NOT NULL DEFAULT '',
-      code_text TEXT NOT NULL DEFAULT '',
       topic TEXT NOT NULL DEFAULT '',
       difficulty INTEGER NOT NULL DEFAULT 2,
       tags TEXT NOT NULL DEFAULT '[]',
-      reviewed_status TEXT NOT NULL DEFAULT 'draft',
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      source TEXT NOT NULL DEFAULT '',
+      verified INTEGER NOT NULL DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS question_attempts (
@@ -69,20 +68,10 @@ async function initializeDatabase(database: SQLite.SQLiteDatabase): Promise<void
 
     CREATE TABLE IF NOT EXISTS code_sections (
       id TEXT PRIMARY KEY,
-      section_number TEXT NOT NULL,
+      section TEXT NOT NULL,
       title TEXT NOT NULL,
-      summary TEXT NOT NULL DEFAULT '',
-      full_text TEXT NOT NULL DEFAULT '',
-      parent_section TEXT,
-      sort_order INTEGER NOT NULL DEFAULT 0
-    );
-
-    CREATE TABLE IF NOT EXISTS bookmarks (
-      id TEXT PRIMARY KEY,
-      question_id TEXT,
-      code_section_id TEXT,
-      note TEXT DEFAULT '',
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      short_summary TEXT NOT NULL DEFAULT '',
+      keywords TEXT NOT NULL DEFAULT '[]'
     );
 
     CREATE INDEX IF NOT EXISTS idx_questions_topic ON questions(topic);
@@ -107,11 +96,12 @@ export async function seedQuestions(questions: Question[]): Promise<void> {
 
   for (const q of questions) {
     await db.runAsync(
-      `INSERT OR IGNORE INTO questions (id, prompt, type, choices, correct_answer, explanation, foreman_explanation, code_section, code_text, topic, difficulty, tags, reviewed_status)
+      `INSERT OR IGNORE INTO questions (id, prompt, type, choices, answer, explanation, foreman_explanation, code_section, topic, difficulty, tags, source, verified)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      q.id, q.prompt, q.type, JSON.stringify(q.choices), q.correct_answer,
-      q.explanation, q.foreman_explanation, q.code_section, q.code_text,
-      q.topic, q.difficulty, JSON.stringify(q.tags), q.reviewed_status
+      q.id, q.prompt, q.type, JSON.stringify(q.choices), q.answer,
+      q.explanation, q.foreman_explanation || '', q.code_section,
+      q.topic, q.difficulty, JSON.stringify(q.tags || []),
+      q.source, q.verified ? 1 : 0
     );
   }
 }
@@ -123,9 +113,9 @@ export async function seedCodeSections(sections: CodeSection[]): Promise<void> {
 
   for (const s of sections) {
     await db.runAsync(
-      `INSERT OR IGNORE INTO code_sections (id, section_number, title, summary, full_text, parent_section, sort_order)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      s.id, s.section_number, s.title, s.summary, s.full_text, s.parent_section, s.sort_order
+      `INSERT OR IGNORE INTO code_sections (id, section, title, short_summary, keywords)
+       VALUES (?, ?, ?, ?, ?)`,
+      s.id, s.section, s.title, s.short_summary, JSON.stringify(s.keywords || [])
     );
   }
 }
@@ -133,7 +123,7 @@ export async function seedCodeSections(sections: CodeSection[]): Promise<void> {
 export async function getDrillQuestions(count: number = 10): Promise<Question[]> {
   const db = await getDatabase();
   const rows = await db.getAllAsync<any>(
-    `SELECT * FROM questions ORDER BY RANDOM() LIMIT ?`, count
+    `SELECT * FROM questions WHERE verified = 1 ORDER BY RANDOM() LIMIT ?`, count
   );
   return rows.map(parseQuestionRow);
 }
@@ -141,7 +131,7 @@ export async function getDrillQuestions(count: number = 10): Promise<Question[]>
 export async function getTopicQuestions(topic: string, count: number = 10): Promise<Question[]> {
   const db = await getDatabase();
   const rows = await db.getAllAsync<any>(
-    `SELECT * FROM questions WHERE topic = ? ORDER BY RANDOM() LIMIT ?`, topic, count
+    `SELECT * FROM questions WHERE topic = ? AND verified = 1 ORDER BY RANDOM() LIMIT ?`, topic, count
   );
   return rows.map(parseQuestionRow);
 }
@@ -161,17 +151,26 @@ export async function getMissedQuestions(count: number = 10): Promise<Question[]
 export async function getMockExamQuestions(count: number = 50): Promise<Question[]> {
   const db = await getDatabase();
   const rows = await db.getAllAsync<any>(
-    `SELECT * FROM questions ORDER BY RANDOM() LIMIT ?`, count
+    `SELECT * FROM questions WHERE verified = 1 ORDER BY RANDOM() LIMIT ?`, count
   );
   return rows.map(parseQuestionRow);
 }
 
 function parseQuestionRow(row: any): Question {
   return {
-    ...row,
+    id: row.id,
+    prompt: row.prompt,
+    type: row.type,
     choices: JSON.parse(row.choices || '[]'),
-    tags: JSON.parse(row.tags || '[]'),
+    answer: row.answer,
+    explanation: row.explanation,
+    foreman_explanation: row.foreman_explanation || '',
+    code_section: row.code_section,
+    topic: row.topic,
     difficulty: row.difficulty as 1 | 2 | 3,
+    tags: JSON.parse(row.tags || '[]'),
+    source: row.source,
+    verified: row.verified === 1,
   };
 }
 
@@ -308,22 +307,34 @@ export async function getMissedCount(): Promise<number> {
 
 export async function getAllCodeSections(): Promise<CodeSection[]> {
   const db = await getDatabase();
-  return db.getAllAsync<CodeSection>('SELECT * FROM code_sections ORDER BY sort_order');
+  const rows = await db.getAllAsync<any>('SELECT * FROM code_sections ORDER BY section');
+  return rows.map(parseCodeSectionRow);
 }
 
 export async function searchCodeSections(query: string): Promise<CodeSection[]> {
   const db = await getDatabase();
   const pattern = `%${query}%`;
-  return db.getAllAsync<CodeSection>(
-    `SELECT * FROM code_sections WHERE title LIKE ? OR summary LIKE ? OR full_text LIKE ? ORDER BY sort_order`,
+  const rows = await db.getAllAsync<any>(
+    `SELECT * FROM code_sections WHERE title LIKE ? OR short_summary LIKE ? OR keywords LIKE ? ORDER BY section`,
     pattern, pattern, pattern
   );
+  return rows.map(parseCodeSectionRow);
 }
 
-export async function getQuestionsForCodeSection(sectionNumber: string): Promise<Question[]> {
+function parseCodeSectionRow(row: any): CodeSection {
+  return {
+    id: row.id,
+    section: row.section,
+    title: row.title,
+    short_summary: row.short_summary || '',
+    keywords: JSON.parse(row.keywords || '[]'),
+  };
+}
+
+export async function getQuestionsForCodeSection(sectionRef: string): Promise<Question[]> {
   const db = await getDatabase();
   const rows = await db.getAllAsync<any>(
-    `SELECT * FROM questions WHERE code_section = ?`, sectionNumber
+    `SELECT * FROM questions WHERE code_section = ?`, sectionRef
   );
   return rows.map(parseQuestionRow);
 }

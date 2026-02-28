@@ -51,7 +51,7 @@ export default function DrillScreen() {
   async function handleAnswer(selected: string) {
     if (!drill || showExplanation) return;
     const question = drill.questions[drill.currentIndex];
-    const correct = selected === question.correct_answer;
+    const correct = selected === question.answer;
     const timeMs = Date.now() - questionStartTime;
 
     answerQuestion(selected, correct, timeMs);
@@ -142,7 +142,7 @@ export default function DrillScreen() {
         {question.choices.map((choice, index) => {
           const letter = String.fromCharCode(65 + index);
           const isSelected = answered?.selected === choice;
-          const isCorrect = choice === question.correct_answer;
+          const isCorrect = choice === question.answer;
           const showResult = showExplanation;
 
           let choiceStyle = styles.choice;
@@ -194,9 +194,6 @@ export default function DrillScreen() {
               <View style={styles.codeRefCard}>
                 <Text style={styles.codeRefLabel}>Code Reference</Text>
                 <Text style={styles.codeRefSection}>Section {question.code_section}</Text>
-                {question.code_text ? (
-                  <Text style={styles.codeRefText}>{question.code_text}</Text>
-                ) : null}
               </View>
             )}
 
