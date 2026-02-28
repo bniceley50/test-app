@@ -1,0 +1,86 @@
+[
+  {
+    "id": "cs-010",
+    "section": "815KAR20:010",
+    "title": "Definitions for 815 KAR Chapter 20",
+    "short_summary": "Defines all key plumbing terms used throughout the Kentucky plumbing code, including master plumber, journeyman plumber, plumber's apprentice, maintenance man, public building, and plumbing.",
+    "keywords": ["definitions", "master plumber", "journeyman plumber", "apprentice", "plumbing", "public building", "maintenance man"]
+  },
+  {
+    "id": "cs-070",
+    "section": "815KAR20:070",
+    "title": "Plumbing Fixtures",
+    "short_summary": "Establishes requirements for plumbing fixtures including water closets, lavatories, sinks, bathtubs, and showers. Sets minimum clearances and connection requirements.",
+    "keywords": ["fixtures", "water closet", "lavatory", "sink", "bathtub", "shower", "clearance"]
+  },
+  {
+    "id": "cs-080",
+    "section": "815KAR20:080",
+    "title": "Waste Pipe Size",
+    "short_summary": "Establishes minimum sizes of traps, soil, and waste branches for each fixture type. Contains the DFU (drainage fixture unit) table and pipe sizing requirements.",
+    "keywords": ["waste pipe", "DFU", "drainage fixture unit", "pipe size", "trap size", "soil pipe"]
+  },
+  {
+    "id": "cs-090",
+    "section": "815KAR20:090",
+    "title": "Soil, Waste, Vent Systems, Traps, and Clean-Outs",
+    "short_summary": "The most comprehensive section. Covers venting requirements (no wet venting in KY), trap placement, trap-to-vent distances, cleanout spacing, vent stack through-roof requirements, prohibited connections, and materials for DWV systems.",
+    "keywords": ["venting", "traps", "cleanouts", "vent stack", "trap arm", "soil pipe", "waste pipe", "DWV", "roof extension", "prohibited connections"]
+  },
+  {
+    "id": "cs-120",
+    "section": "815KAR20:120",
+    "title": "Water Supply and Distribution",
+    "short_summary": "Covers potable water supply systems, pipe sizing, backflow prevention (air gap, RPZ, double check, vacuum breaker), cross-connection control, thermal expansion, and water heater requirements.",
+    "keywords": ["water supply", "backflow", "cross connection", "RPZ", "vacuum breaker", "air gap", "double check", "thermal expansion", "water heater", "potable water"]
+  },
+  {
+    "id": "cs-130",
+    "section": "815KAR20:130",
+    "title": "House Sewers and Storm Water Piping",
+    "short_summary": "Covers house sewer connections, storm water piping, combined sewers, and requirements for sewer pipe materials and installation.",
+    "keywords": ["house sewer", "storm water", "combined sewer", "sewer pipe", "building drain"]
+  },
+  {
+    "id": "cs-150",
+    "section": "815KAR20:150",
+    "title": "Inspections and Tests",
+    "short_summary": "Establishes inspection and testing requirements. Water test with 10-foot head of water. Air test. Concealed work must be inspected before covering. Remote inspection provisions. License revocation for fraud.",
+    "keywords": ["inspection", "water test", "air test", "concealed work", "permit", "remote inspection", "fraud", "revocation"]
+  },
+  {
+    "id": "cs-180",
+    "section": "815KAR20:180",
+    "title": "Special Connections",
+    "short_summary": "Covers indirect waste connections, acid waste systems, dilution pits, grease interceptors, and other special plumbing connections.",
+    "keywords": ["indirect waste", "acid waste", "dilution pit", "grease interceptor", "special waste"]
+  },
+  {
+    "id": "cs-191",
+    "section": "815KAR20:191",
+    "title": "Minimum Fixture Requirements",
+    "short_summary": "Specifies minimum number of plumbing fixtures (water closets, lavatories, drinking fountains) required by building type and occupancy.",
+    "keywords": ["minimum fixtures", "occupancy", "water closet", "lavatory", "drinking fountain"]
+  },
+  {
+    "id": "cs-krs318",
+    "section": "KRS318",
+    "title": "Kentucky Plumbing Law (KRS Chapter 318)",
+    "short_summary": "The statutory law governing plumbing in Kentucky. Defines master plumber, journeyman plumber, apprentice. Establishes licensing requirements, permit requirements, penalties for violations, and the authority of the Department of Housing, Buildings and Construction.",
+    "keywords": ["KRS 318", "license", "master plumber", "journeyman", "apprentice", "permit", "penalty", "revocation", "public building"]
+  },
+  {
+    "id": "cs-815kar2",
+    "section": "815KAR2",
+    "title": "Administrative Regulations (815 KAR Chapter 2)",
+    "short_summary": "Administrative procedures for plumbing regulation in Kentucky including permits, fees, examinations, and appeals processes.",
+    "keywords": ["administration", "permits", "fees", "examination", "appeals"]
+  },
+  {
+    "id": "cs-030",
+    "section": "815KAR20:030",
+    "title": "Plumbing Licenses",
+    "short_summary": "Establishes requirements for plumbing licenses in Kentucky. Master plumber exam requires 80% passing score. Journeyman exam requires 75%. Covers exam scheduling, fees, and license renewal.",
+    "keywords": ["license", "exam", "passing score", "master plumber", "journeyman", "renewal", "fee"]
+  }
+]

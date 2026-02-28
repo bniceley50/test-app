@@ -1,0 +1,822 @@
+[
+  {
+    "id": "ky-law-001",
+    "prompt": "According to KRS 318.010, what is the definition of a 'Master Plumber' in Kentucky?",
+    "type": "mcq",
+    "choices": [
+      "A person who has completed 10 years of plumbing work",
+      "A person who assumes responsible charge, supervision, or direction of journeyman plumbers, plumbers' apprentices, and other persons in the construction, installation, or alteration of plumbing",
+      "A person who holds an engineering degree and works in plumbing design",
+      "A person who has passed both the journeyman and master exams within the same year"
+    ],
+    "answer": "A person who assumes responsible charge, supervision, or direction of journeyman plumbers, plumbers' apprentices, and other persons in the construction, installation, or alteration of plumbing",
+    "explanation": "KRS 318.010 defines a Master Plumber as a person who assumes responsible charge, supervision, or direction of journeyman plumbers, plumbers' apprentices, and other persons in the construction, installation, or alteration of plumbing, or who engages in design, planning, superintending, contracting for, or responsible charge of plumbing.",
+    "foreman_explanation": "A master plumber is the guy in charge. He's the one whose license is on the line — he supervises the journeymen and apprentices, pulls the permits, and takes responsibility for the work.",
+    "topic": "law_licensing",
+    "code_section": "KRS318.010",
+    "source": "krs-318",
+    "verified": true,
+    "difficulty": 1,
+    "tags": ["definition", "master plumber", "KRS 318"]
+  },
+  {
+    "id": "ky-law-002",
+    "prompt": "What is the minimum amount of general liability insurance required to engage in plumbing in Kentucky per KRS 318.030?",
+    "type": "mcq",
+    "choices": [
+      "$100,000",
+      "$250,000",
+      "$500,000",
+      "$1,000,000"
+    ],
+    "answer": "$250,000",
+    "explanation": "KRS 318.030 states that no person, firm, or corporation shall engage in plumbing unless maintaining general liability insurance in an amount not less than $250,000.",
+    "foreman_explanation": "Quarter mil in liability insurance. That's the minimum to hold a master's license and pull permits in Kentucky. No insurance, no license.",
+    "topic": "law_licensing",
+    "code_section": "KRS318.030",
+    "source": "krs-318",
+    "verified": true,
+    "difficulty": 1,
+    "tags": ["insurance", "license requirement"]
+  },
+  {
+    "id": "ky-law-003",
+    "prompt": "What is the penalty for violating the Kentucky plumbing law per KRS 318.990?",
+    "type": "mcq",
+    "choices": [
+      "Fine of $100 to $500",
+      "Fine of $10 to $100, or imprisonment up to 90 days, or both",
+      "Automatic license revocation and $1,000 fine",
+      "Community service of 200 hours"
+    ],
+    "answer": "Fine of $10 to $100, or imprisonment up to 90 days, or both",
+    "explanation": "KRS 318.990 provides that violations are punishable by a fine not less than $10 nor more than $100, or imprisonment for not more than 90 days, or both. Each day the violation continues constitutes a separate offense.",
+    "foreman_explanation": "The fine sounds small — ten to a hundred bucks — but each day it continues is a separate offense. And they can lock you up for 90 days. It adds up fast if you're ignoring a stop order.",
+    "topic": "law_licensing",
+    "code_section": "KRS318.990",
+    "source": "krs-318",
+    "verified": true,
+    "difficulty": 2,
+    "tags": ["penalty", "violation", "fine"]
+  },
+  {
+    "id": "ky-law-004",
+    "prompt": "What is the minimum passing score for the Kentucky Master Plumber examination?",
+    "type": "mcq",
+    "choices": [
+      "70% on each portion",
+      "75% on each portion",
+      "80% on each portion",
+      "85% on each portion"
+    ],
+    "answer": "80% on each portion",
+    "explanation": "Per 815 KAR 20:030, a passing score of a minimum of 80% must be obtained for each portion of the master plumber examination. The journeyman exam requires 75%.",
+    "foreman_explanation": "Eighty percent on every section. Not overall — on EACH part. The journeyman exam is 75%. That extra 5% is what separates masters from journeymen on paper.",
+    "topic": "law_licensing",
+    "code_section": "815KAR20:030",
+    "source": "815kar20",
+    "verified": true,
+    "difficulty": 1,
+    "tags": ["exam", "passing score"]
+  },
+  {
+    "id": "ky-law-005",
+    "prompt": "How long is a passing score on the Kentucky plumbing exam valid?",
+    "type": "mcq",
+    "choices": [
+      "1 year",
+      "2 years",
+      "3 years",
+      "5 years"
+    ],
+    "answer": "3 years",
+    "explanation": "Per 815 KAR 20:030, a passing score on the Kentucky plumbing examination is valid for 3 years.",
+    "foreman_explanation": "You pass the test, you've got three years to get your license squared away. After that, the score expires and you'd have to sit for it again.",
+    "topic": "law_licensing",
+    "code_section": "815KAR20:030",
+    "source": "815kar20",
+    "verified": true,
+    "difficulty": 1,
+    "tags": ["exam", "score validity"]
+  },
+  {
+    "id": "ky-law-006",
+    "prompt": "What is the initial license fee for a Master Plumber in Kentucky?",
+    "type": "mcq",
+    "choices": [
+      "$60",
+      "$125",
+      "$250",
+      "$500"
+    ],
+    "answer": "$250",
+    "explanation": "Per 815 KAR 20:030, the master plumber license fee is $250. The journeyman license fee is $60. Inactive master fee is $125.",
+    "foreman_explanation": "Two-fifty for the master's license. Journeyman is sixty bucks. If you go inactive, the master drops to $125 but you can't pull permits or advertise.",
+    "topic": "law_licensing",
+    "code_section": "815KAR20:030",
+    "source": "815kar20",
+    "verified": true,
+    "difficulty": 1,
+    "tags": ["license fee", "master plumber"]
+  },
+  {
+    "id": "ky-law-007",
+    "prompt": "How many years of experience as a journeyman plumber are required to qualify for the Kentucky Master Plumber exam?",
+    "type": "mcq",
+    "choices": [
+      "1 year within the past 3 years",
+      "2 years within the past 5 years",
+      "4 years within the past 10 years",
+      "5 years total experience"
+    ],
+    "answer": "2 years within the past 5 years",
+    "explanation": "Per 815 KAR 20:030, one qualification path requires holding a valid journeyman license for minimum 2 years within the past 5 years AND being actively employed under supervision of a master plumber for minimum 2 years.",
+    "foreman_explanation": "Two years as a journeyman, within the last five. You can't say 'I was a journeyman 15 years ago' — it has to be recent. And you need to have actually been working under a master.",
+    "topic": "law_licensing",
+    "code_section": "815KAR20:030",
+    "source": "815kar20",
+    "verified": true,
+    "difficulty": 2,
+    "tags": ["qualification", "experience", "master plumber"]
+  },
+  {
+    "id": "ky-law-008",
+    "prompt": "A local government plumbing inspector in Kentucky must have at least how many years of experience as a master or journeyman plumber?",
+    "type": "mcq",
+    "choices": [
+      "4 years",
+      "6 years",
+      "8 years",
+      "10 years"
+    ],
+    "answer": "8 years",
+    "explanation": "Per KRS 318.140, no person shall be eligible for appointment as a local government plumbing inspector unless having at least 8 years' experience as a master or journeyman plumber.",
+    "foreman_explanation": "Eight years in the trade minimum before you can be a plumbing inspector for a local government. They don't want someone who's never turned a wrench telling you how to run pipe.",
+    "topic": "law_licensing",
+    "code_section": "KRS318.140",
+    "source": "krs-318",
+    "verified": true,
+    "difficulty": 2,
+    "tags": ["inspector", "qualification"]
+  },
+  {
+    "id": "ky-vent-001",
+    "prompt": "Per 815 KAR 20:090, a building in which plumbing fixtures are installed must have a soil or waste and vent stack that:",
+    "type": "mcq",
+    "choices": [
+      "Extends at least 6 inches above the roof line",
+      "Extends full size through the roof",
+      "Can be reduced one pipe size above the highest fixture",
+      "Must terminate inside the attic space"
+    ],
+    "answer": "Extends full size through the roof",
+    "explanation": "815 KAR 20:090 Section 11 states that a building in which a plumbing fixture is installed shall have a soil or waste and vent stack extending full size through the roof. It shall be as direct as possible and free from sharp bends or turns.",
+    "foreman_explanation": "Full size through the roof. Don't reduce it, don't cheat it. A 3-inch stack stays 3 inches all the way up and out. That's how you keep air flowing through the whole system.",
+    "topic": "venting",
+    "code_section": "815KAR20:090",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 1,
+    "tags": ["vent stack", "roof extension"]
+  },
+  {
+    "id": "ky-vent-002",
+    "prompt": "According to the Kentucky code, roof extensions of soil and waste stacks must extend at least how far above the roof?",
+    "type": "mcq",
+    "choices": [
+      "6 inches",
+      "1 foot",
+      "2 feet",
+      "3 feet"
+    ],
+    "answer": "1 foot",
+    "explanation": "815 KAR 20:090 Section 17 states that a roof extension of soil and waste stacks shall run full size at least one (1) foot above the roof.",
+    "foreman_explanation": "One foot above the roof, minimum. That keeps snow and debris from blocking it. And remember — full size the whole way, no reductions.",
+    "topic": "venting",
+    "code_section": "815KAR20:090",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 1,
+    "tags": ["roof extension", "vent terminal"]
+  },
+  {
+    "id": "ky-vent-003",
+    "prompt": "Per the Kentucky plumbing code, what type of vent is NOT permitted?",
+    "type": "mcq",
+    "choices": [
+      "Individual vent",
+      "Stack vent",
+      "Crown vent",
+      "Flat vent (with building design exception)"
+    ],
+    "answer": "Crown vent",
+    "explanation": "815 KAR 20:090 explicitly states that a crown vent shall not be permitted. Each fixture trap shall be protected against siphonage and backpressure by means of an individual vent.",
+    "foreman_explanation": "Crown vents are a no-go in Kentucky. That's venting right off the top of the trap — it can cause siphoning problems. Every fixture gets its own individual vent, period.",
+    "topic": "venting",
+    "code_section": "815KAR20:090",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 2,
+    "tags": ["crown vent", "prohibited", "individual vent"]
+  },
+  {
+    "id": "ky-vent-004",
+    "prompt": "In Kentucky, a vent pipe above the highest installed fixture on a branch or main shall NOT be used as what?",
+    "type": "mcq",
+    "choices": [
+      "A relief vent",
+      "A soil or waste pipe",
+      "A stack vent",
+      "A circuit vent"
+    ],
+    "answer": "A soil or waste pipe",
+    "explanation": "815 KAR 20:090 Section 16 states that a vent pipe above the highest installed fixture on a branch or main shall not be used as a soil or waste pipe.",
+    "foreman_explanation": "Once a pipe becomes a vent above the highest fixture, you can't dump waste into it. Vents carry air, not sewage. It's a one-way street.",
+    "topic": "venting",
+    "code_section": "815KAR20:090",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 2,
+    "tags": ["prohibited connections", "vent pipe"]
+  },
+  {
+    "id": "ky-vent-005",
+    "prompt": "When is a flat vent allowed in Kentucky?",
+    "type": "mcq",
+    "choices": [
+      "In all residential installations",
+      "Only in buildings over 3 stories",
+      "When the design of the building prohibits the type of venting normally required",
+      "Flat vents are never allowed in Kentucky"
+    ],
+    "answer": "When the design of the building prohibits the type of venting normally required",
+    "explanation": "815 KAR 20:090 states that a flat vent may be allowed if the design of the building prohibits the type of venting required by this administrative regulation.",
+    "foreman_explanation": "Flat vents are a special exception — only when you literally can't run a standard vent because of how the building is designed. It's not a shortcut. It's a last resort.",
+    "topic": "venting",
+    "code_section": "815KAR20:090",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 2,
+    "tags": ["flat vent", "exception"]
+  },
+  {
+    "id": "ky-trap-001",
+    "prompt": "Per 815 KAR 20:090, what is the maximum distance from the bottom of a fixture to its trap?",
+    "type": "mcq",
+    "choices": [
+      "6 inches",
+      "10 inches",
+      "12 inches",
+      "18 inches"
+    ],
+    "answer": "10 inches",
+    "explanation": "815 KAR 20:090 Section 2 states that a fixture shall be separately trapped by a water-seal trap placed as near as possible to the fixture, but not to exceed ten (10) inches from the bottom of the fixture.",
+    "foreman_explanation": "Ten inches max from the bottom of the fixture to the trap. The closer the better — you want that trap right up under the fixture to do its job. Ten inches is the outside limit.",
+    "topic": "traps",
+    "code_section": "815KAR20:090",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 1,
+    "tags": ["trap distance", "fixture trap"]
+  },
+  {
+    "id": "ky-trap-002",
+    "prompt": "What is the maximum length of a fixture branch on a water closet per the Kentucky code?",
+    "type": "mcq",
+    "choices": [
+      "3 feet",
+      "4 feet 6 inches",
+      "6 feet",
+      "8 feet"
+    ],
+    "answer": "4 feet 6 inches",
+    "explanation": "815 KAR 20:090 Section 2 states that a fixture branch on a water closet shall not be more than four (4) feet six (6) inches.",
+    "foreman_explanation": "Four and a half feet from the water closet to where it ties in. That's measured center of the drain. If you have to go farther, you've got a design problem.",
+    "topic": "traps",
+    "code_section": "815KAR20:090",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 2,
+    "tags": ["water closet", "fixture branch", "trap arm"]
+  },
+  {
+    "id": "ky-trap-003",
+    "prompt": "On the outlet side of a trap, a slip joint connection is only permitted on what size trap per Kentucky code?",
+    "type": "mcq",
+    "choices": [
+      "1-1/4 inch",
+      "1-1/2 inch",
+      "2 inch",
+      "Any size"
+    ],
+    "answer": "1-1/2 inch",
+    "explanation": "815 KAR 20:090 states that slip joints are permitted on the inlet side of the trap. A single one and one-half (1-1/2) inch slip joint connection with an elastomeric gasket shall be permitted on the outlet side of a one and one-half (1-1/2) inch trap.",
+    "foreman_explanation": "Slip joints on the inlet — fine for any size. But on the outlet side? Only on a one-and-a-half inch trap, with a rubber gasket. That's the only exception. Everything else gets a solid connection on the outlet.",
+    "topic": "traps",
+    "code_section": "815KAR20:090",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 3,
+    "tags": ["slip joint", "trap connection"]
+  },
+  {
+    "id": "ky-size-001",
+    "prompt": "According to 815 KAR 20:090, how many water closets with a flush rate of 1.6 GPF or less can discharge into a 3-inch stack?",
+    "type": "mcq",
+    "choices": [
+      "2",
+      "3",
+      "4",
+      "6"
+    ],
+    "answer": "4",
+    "explanation": "815 KAR 20:090 Section 11 states that more than four (4) water closets with a flush rate of 1.6 gallons per flush or less shall not discharge into a three (3) inch stack.",
+    "foreman_explanation": "Four low-flow water closets max on a 3-inch stack. If they're the old 3.5 gallon flush, you only get three. After that, you need a 4-inch stack.",
+    "topic": "sizing",
+    "code_section": "815KAR20:090",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 2,
+    "tags": ["water closet", "stack size", "pipe sizing"]
+  },
+  {
+    "id": "ky-size-002",
+    "prompt": "How many water closets with a flush rate of 3.5 GPF can discharge into a 3-inch stack in Kentucky?",
+    "type": "mcq",
+    "choices": [
+      "2",
+      "3",
+      "4",
+      "5"
+    ],
+    "answer": "3",
+    "explanation": "815 KAR 20:090 Section 11 states that more than three (3) water closets with a flush rate of 3.5 gallons per flush shall not discharge into a three (3) inch stack.",
+    "foreman_explanation": "Three of the old-style 3.5 gallon flushers on a 3-inch. That's it. The higher flow rate means more water hitting the stack, so you max out sooner.",
+    "topic": "sizing",
+    "code_section": "815KAR20:090",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 2,
+    "tags": ["water closet", "stack size"]
+  },
+  {
+    "id": "ky-size-003",
+    "prompt": "What is the minimum size of waste pipe for a lavatory in Kentucky?",
+    "type": "mcq",
+    "choices": [
+      "1 inch",
+      "1-1/4 inch",
+      "1-1/2 inch",
+      "2 inch"
+    ],
+    "answer": "1-1/4 inch",
+    "explanation": "Per 815 KAR 20:080, the minimum size (nominal inside diameter) of traps, soil, or waste branches for a lavatory is 1-1/4 inches.",
+    "foreman_explanation": "Inch and a quarter for a lav. It's the smallest trap size you'll see. Sinks are inch and a half, showers are two inch. Know your fixture sizes cold for the test.",
+    "topic": "sizing",
+    "code_section": "815KAR20:080",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 1,
+    "tags": ["lavatory", "pipe size", "trap size"]
+  },
+  {
+    "id": "ky-water-001",
+    "prompt": "What is the minimum horizontal separation between a water service pipe and a house sewer in Kentucky?",
+    "type": "mcq",
+    "choices": [
+      "3 feet of undisturbed earth",
+      "5 feet of undisturbed or compacted earth",
+      "10 feet of undisturbed earth",
+      "No minimum separation required"
+    ],
+    "answer": "5 feet of undisturbed or compacted earth",
+    "explanation": "815 KAR 20:120 Section 3 requires a minimum 5 feet horizontal separation from the house sewer in undisturbed or compacted earth.",
+    "foreman_explanation": "Five feet between your water line and sewer line. That's horizontal. If you have to put them in the same trench, the water has to be at least 18 inches above the sewer.",
+    "topic": "water_supply",
+    "code_section": "815KAR20:120",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 2,
+    "tags": ["water service", "sewer separation"]
+  },
+  {
+    "id": "ky-water-002",
+    "prompt": "When a water service and house sewer are in the same trench, the bottom of the water service must be at least how far above the top of the sewer?",
+    "type": "mcq",
+    "choices": [
+      "6 inches",
+      "12 inches",
+      "18 inches",
+      "24 inches"
+    ],
+    "answer": "18 inches",
+    "explanation": "815 KAR 20:120 Section 3 allows them in the same trench if the water service bottom is at least 18 inches above the sewer top, on a solid shelf, with minimum joints.",
+    "foreman_explanation": "Eighteen inches of separation vertically when they share a trench. Water on top, sewer on the bottom. Put the water line on a solid shelf. You don't want a sewer leak contaminating your drinking water.",
+    "topic": "water_supply",
+    "code_section": "815KAR20:120",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 2,
+    "tags": ["water service", "sewer", "same trench"]
+  },
+  {
+    "id": "ky-backflow-001",
+    "prompt": "According to 815 KAR 20:120, which backflow prevention method provides the best level of protection?",
+    "type": "mcq",
+    "choices": [
+      "Double check valve assembly",
+      "Atmospheric vacuum breaker",
+      "Air gap",
+      "Reduced pressure principle backflow preventer"
+    ],
+    "answer": "Air gap",
+    "explanation": "815 KAR 20:120 states that an air gap provides the best level of protection in all backflow situations. A reduced pressure principle backflow preventer is considered equivalent to an air gap.",
+    "foreman_explanation": "Air gap is king. It's a physical break — nothing can push water backwards through air. An RPZ is the best mechanical device and is considered equivalent, but technically the air gap is number one.",
+    "topic": "backflow",
+    "code_section": "815KAR20:120",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 1,
+    "tags": ["air gap", "backflow prevention"]
+  },
+  {
+    "id": "ky-backflow-002",
+    "prompt": "Per 815 KAR 20:120, a reduced pressure principle backflow preventer is considered equivalent to what other form of protection?",
+    "type": "mcq",
+    "choices": [
+      "A double check valve assembly",
+      "An atmospheric vacuum breaker",
+      "An air gap",
+      "A barometric loop"
+    ],
+    "answer": "An air gap",
+    "explanation": "815 KAR 20:120 states that a reduced pressure principle back pressure backflow preventer shall provide the best mechanical protection against backflow available and shall be considered equivalent to an air gap.",
+    "foreman_explanation": "RPZ equals air gap in the code's eyes. It's the best mechanical device you can install. When you can't physically create an air gap, the RPZ is your go-to for high-hazard situations.",
+    "topic": "backflow",
+    "code_section": "815KAR20:120",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 2,
+    "tags": ["RPZ", "air gap", "backflow"]
+  },
+  {
+    "id": "ky-backflow-003",
+    "prompt": "What is NOT acceptable as a primary back siphonage preventer in Kentucky?",
+    "type": "mcq",
+    "choices": [
+      "Air gap",
+      "Atmospheric vacuum breaker",
+      "Barometric loop",
+      "Reduced pressure principle backflow preventer"
+    ],
+    "answer": "Barometric loop",
+    "explanation": "815 KAR 20:120 states that the use of a barometric loop shall not be acceptable as the primary back siphonage preventer.",
+    "foreman_explanation": "Barometric loops are not reliable enough to be your primary protection. They depend on atmospheric pressure, and that's not guaranteed. Use a real device — RPZ, AVB, or air gap.",
+    "topic": "backflow",
+    "code_section": "815KAR20:120",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 3,
+    "tags": ["barometric loop", "back siphonage"]
+  },
+  {
+    "id": "ky-heater-001",
+    "prompt": "Per 815 KAR 20:055, where must a T&P (temperature and pressure) relief device be installed on a water heater?",
+    "type": "mcq",
+    "choices": [
+      "On the cold water inlet, within 6 inches of the tank",
+      "On the hot water side, not more than 3 inches from the top of the water heater",
+      "At the base of the water heater on the drain valve",
+      "Anywhere on the water heater within 12 inches of the tank"
+    ],
+    "answer": "On the hot water side, not more than 3 inches from the top of the water heater",
+    "explanation": "815 KAR 20:055 Section 5 states the T&P relief device shall be installed on the hot water side, not more than 3 inches from the top of the water heater.",
+    "foreman_explanation": "Hot side, within three inches of the top. That's where the hottest water and most pressure builds up. If it's not at the top, it won't sense the danger conditions fast enough.",
+    "topic": "water_heaters",
+    "code_section": "815KAR20:055",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 2,
+    "tags": ["T&P relief", "water heater"]
+  },
+  {
+    "id": "ky-heater-002",
+    "prompt": "When discharging a T&P relief valve where there IS a floor drain, the discharge pipe must terminate within what distance of the floor?",
+    "type": "mcq",
+    "choices": [
+      "2 inches",
+      "4 inches",
+      "6 inches",
+      "12 inches"
+    ],
+    "answer": "2 inches",
+    "explanation": "815 KAR 20:120 Section 14 states that with a floor drain, the T&P discharge piping shall be within 2 inches of the floor.",
+    "foreman_explanation": "Two inches off the floor when there's a drain. Without a floor drain, you pipe it outside and terminate within 4 inches of the ground with an ell turned down. Know both numbers.",
+    "topic": "water_heaters",
+    "code_section": "815KAR20:120",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 2,
+    "tags": ["T&P relief", "discharge"]
+  },
+  {
+    "id": "ky-heater-003",
+    "prompt": "Per 815 KAR 20:055, a fuel-fired water heater flue must extend at least how far above the roof?",
+    "type": "mcq",
+    "choices": [
+      "1 foot",
+      "2 feet",
+      "3 feet",
+      "4 feet"
+    ],
+    "answer": "2 feet",
+    "explanation": "815 KAR 20:055 states that the flue of a fuel-fired water heater shall extend 2 feet above the roof.",
+    "foreman_explanation": "Two feet above the roof for the flue. Don't confuse this with the plumbing vent stack which is one foot. The water heater flue needs more height because it's dealing with combustion gases.",
+    "topic": "water_heaters",
+    "code_section": "815KAR20:055",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 2,
+    "tags": ["flue", "water heater", "roof"]
+  },
+  {
+    "id": "ky-inspect-001",
+    "prompt": "What is the air pressure required for the final air test of a plumbing system in Kentucky?",
+    "type": "mcq",
+    "choices": [
+      "5 PSI",
+      "Air pressure equivalent to 1-inch water column",
+      "15 PSI",
+      "Air pressure equivalent to 10-foot head of water"
+    ],
+    "answer": "Air pressure equivalent to 1-inch water column",
+    "explanation": "815 KAR 20:150 Section 4(4) states the final air test uses air pressure equivalent to 1-inch water column, maintained for at least 15 minutes.",
+    "foreman_explanation": "One inch of water column for the final air test. That's barely any pressure — it's just enough to find leaks without blowing trap seals. Hold it 15 minutes. The rough-in air test is different — that's 5 PSI.",
+    "topic": "inspections",
+    "code_section": "815KAR20:150",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 2,
+    "tags": ["air test", "final inspection"]
+  },
+  {
+    "id": "ky-inspect-002",
+    "prompt": "How long must the final air test be maintained per the Kentucky plumbing code?",
+    "type": "mcq",
+    "choices": [
+      "5 minutes",
+      "10 minutes",
+      "15 minutes",
+      "30 minutes"
+    ],
+    "answer": "15 minutes",
+    "explanation": "815 KAR 20:150 Section 4(4) states the final air test must be maintained for at least 15 minutes. No leaks or forcing of trap seals indicates an airtight system.",
+    "foreman_explanation": "Fifteen minutes, no drop in pressure, no bubbles. If a trap seal gets pushed during the test, you've got a leak somewhere. Fix it and retest.",
+    "topic": "inspections",
+    "code_section": "815KAR20:150",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 1,
+    "tags": ["air test", "duration"]
+  },
+  {
+    "id": "ky-inspect-003",
+    "prompt": "What air pressure is used for the rough-in air pressure test of a DWV system in Kentucky?",
+    "type": "mcq",
+    "choices": [
+      "1-inch water column",
+      "5 PSI",
+      "10 PSI",
+      "15 PSI"
+    ],
+    "answer": "5 PSI",
+    "explanation": "815 KAR 20:150 Section 4(3) states that in lieu of a water test, the system may be tested with forced air to 5 PSI uniform pressure.",
+    "foreman_explanation": "Five PSI for the rough-in. That's a real pressure test — enough to find any bad joints. Don't confuse it with the final test which is only 1-inch water column. Two different tests, two different pressures.",
+    "topic": "inspections",
+    "code_section": "815KAR20:150",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 2,
+    "tags": ["air test", "rough-in", "5 PSI"]
+  },
+  {
+    "id": "ky-inspect-004",
+    "prompt": "If any part of a plumbing system is covered or concealed before being inspected, what must happen?",
+    "type": "mcq",
+    "choices": [
+      "The installation is automatically approved",
+      "A photo inspection can substitute",
+      "It shall be uncovered and tested as required",
+      "The contractor pays a double inspection fee"
+    ],
+    "answer": "It shall be uncovered and tested as required",
+    "explanation": "815 KAR 20:150 Section 1 states that if any part of a plumbing system is covered or concealed before being inspected, tested, and approved, it shall be uncovered, or unconcealed and tested as required.",
+    "foreman_explanation": "Cover it before the inspector sees it? You're ripping it open. No exceptions. That's why you call for your rough-in inspection BEFORE the drywall guys show up.",
+    "topic": "inspections",
+    "code_section": "815KAR20:150",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 1,
+    "tags": ["concealed work", "inspection"]
+  },
+  {
+    "id": "ky-fixture-001",
+    "prompt": "What is the maximum flow rate for a shower head in Kentucky per 815 KAR 20:070?",
+    "type": "mcq",
+    "choices": [
+      "1.5 gallons per minute",
+      "2.0 gallons per minute",
+      "2.5 gallons per minute",
+      "3.0 gallons per minute"
+    ],
+    "answer": "2.5 gallons per minute",
+    "explanation": "815 KAR 20:070 Section 11 states that showers shall have a maximum flow rate of 2.5 gallons per minute per shower head (non-safety use).",
+    "foreman_explanation": "Two and a half GPM per shower head. That's the conservation requirement. Public lavatory faucets are even less — 0.75 GPM. Know both numbers.",
+    "topic": "fixtures",
+    "code_section": "815KAR20:070",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 1,
+    "tags": ["shower", "flow rate", "conservation"]
+  },
+  {
+    "id": "ky-fixture-002",
+    "prompt": "What is the maximum flow rate for a public lavatory faucet in Kentucky?",
+    "type": "mcq",
+    "choices": [
+      "0.5 gallons per minute",
+      "0.75 gallons per minute",
+      "1.5 gallons per minute",
+      "2.0 gallons per minute"
+    ],
+    "answer": "0.75 gallons per minute",
+    "explanation": "815 KAR 20:070 Section 11 states that public lavatories shall have a maximum flow rate of 0.75 gallons per minute.",
+    "foreman_explanation": "Three-quarters of a gallon per minute for public lav faucets. That's not a lot of water — but it's the code. Private lavs can flow more.",
+    "topic": "fixtures",
+    "code_section": "815KAR20:070",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 2,
+    "tags": ["lavatory", "flow rate", "public"]
+  },
+  {
+    "id": "ky-fixture-003",
+    "prompt": "What is the minimum height of the vertical walls on a shower drain pan per 815 KAR 20:070?",
+    "type": "mcq",
+    "choices": [
+      "3 inches",
+      "4 inches",
+      "6 inches",
+      "8 inches"
+    ],
+    "answer": "6 inches",
+    "explanation": "815 KAR 20:070 Section 6 states that a shower drain pan shall have a minimum of 6 inches on all vertical walls.",
+    "foreman_explanation": "Six inches up the walls for the shower pan. That's your waterproofing layer — if the pan is too short, water gets behind the wall and rots everything out.",
+    "topic": "fixtures",
+    "code_section": "815KAR20:070",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 2,
+    "tags": ["shower", "drain pan"]
+  },
+  {
+    "id": "ky-permit-001",
+    "prompt": "What is the base permit fee for residential plumbing work (1 & 2 family) in Kentucky?",
+    "type": "mcq",
+    "choices": [
+      "$25 plus $10 per fixture",
+      "$50 plus $14 per fixture",
+      "$75 plus $20 per fixture",
+      "$100 plus $25 per fixture"
+    ],
+    "answer": "$50 plus $14 per fixture",
+    "explanation": "Per 815 KAR 20:050 Section 4, residential (1 & 2 family) permits are $50 base fee plus $14 per fixture/appliance/opening.",
+    "foreman_explanation": "Fifty bucks base plus fourteen per opening for residential. Commercial is fifty plus twenty per opening. A water heater swap is just a flat fifty. Know your permit fees.",
+    "topic": "law_licensing",
+    "code_section": "815KAR20:050",
+    "source": "815kar20",
+    "verified": true,
+    "difficulty": 2,
+    "tags": ["permit", "fee", "residential"]
+  },
+  {
+    "id": "ky-sewer-001",
+    "prompt": "Per 815 KAR 20:130, house sewer piping in undisturbed ground must be bedded on at least how many inches of pea gravel, sand, or approved grillage?",
+    "type": "mcq",
+    "choices": [
+      "2 inches",
+      "4 inches",
+      "6 inches",
+      "8 inches"
+    ],
+    "answer": "4 inches",
+    "explanation": "815 KAR 20:130 Section 5 states that house sewer in undisturbed ground requires at least 4 inches of pea gravel, sand, or approved grillage.",
+    "foreman_explanation": "Four inches of bedding under the sewer in undisturbed ground. In filled ground it's a 4-inch concrete pad below the invert. Don't skimp on bedding — settling will break your joints.",
+    "topic": "sewers_storm",
+    "code_section": "815KAR20:130",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 2,
+    "tags": ["house sewer", "bedding", "grillage"]
+  },
+  {
+    "id": "ky-special-001",
+    "prompt": "Per 815 KAR 20:180, a residential washing machine in a new building must have what size trap?",
+    "type": "mcq",
+    "choices": [
+      "1-1/2 inch",
+      "2 inch",
+      "3 inch",
+      "4 inch"
+    ],
+    "answer": "2 inch",
+    "explanation": "815 KAR 20:180 Section 3 states that a washing machine in a new building shall have a 2-inch trap, vented per 815 KAR 20:080, installed 12 inches above the floor with a 2-inch standpipe.",
+    "foreman_explanation": "Two-inch trap for a washer in new construction, twelve inches above the floor with a standpipe up to washer height. In old buildings the rules are different — check Section 4.",
+    "topic": "special_connections",
+    "code_section": "815KAR20:180",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 2,
+    "tags": ["washing machine", "trap", "residential"]
+  },
+  {
+    "id": "ky-special-002",
+    "prompt": "Per 815 KAR 20:180, air conditioning equipment shall NOT be directly connected to what?",
+    "type": "mcq",
+    "choices": [
+      "A floor drain",
+      "A soil, waste, or vent pipe",
+      "A condensate pump",
+      "A laundry drain"
+    ],
+    "answer": "A soil, waste, or vent pipe",
+    "explanation": "815 KAR 20:180 Section 5 states that evaporative cooler/air washer/air handling equipment shall have no direct connection to soil, waste, or vent pipe. It must be drained by indirect waste pipe through air gap or air break into an open floor sink/drain/receptor.",
+    "foreman_explanation": "A/C condensate can't dump directly into a drain line. It has to go through an air gap into an open receptor. Direct connection could let sewer gas back into the air handler — and that's blowing sewer gas through your HVAC.",
+    "topic": "special_connections",
+    "code_section": "815KAR20:180",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 2,
+    "tags": ["air conditioning", "indirect waste"]
+  },
+  {
+    "id": "ky-material-001",
+    "prompt": "What gauge must a tubular brass trap be per the Kentucky plumbing code?",
+    "type": "mcq",
+    "choices": [
+      "14 gauge",
+      "16 gauge",
+      "17 gauge",
+      "20 gauge"
+    ],
+    "answer": "17 gauge",
+    "explanation": "815 KAR 20:090 Section 1 states that a tubular brass trap shall be seventeen (17) gauge.",
+    "foreman_explanation": "Seventeen gauge for brass traps. It's a specific number they love to test on. Not 16, not 18 — seventeen.",
+    "topic": "pipe_materials",
+    "code_section": "815KAR20:090",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 3,
+    "tags": ["brass trap", "gauge"]
+  },
+  {
+    "id": "ky-cleanout-001",
+    "prompt": "In a building served by a stack over how many feet in height must a clean-out be provided at the base of each vertical waste or soil stack?",
+    "type": "mcq",
+    "choices": [
+      "20 feet",
+      "30 feet",
+      "45 feet",
+      "60 feet"
+    ],
+    "answer": "45 feet",
+    "explanation": "815 KAR 20:090 states that in a building served by a stack over forty-five (45) feet in height, a clean-out shall be provided at the base of each vertical waste or soil stack.",
+    "foreman_explanation": "Forty-five feet is the trigger. If your stack is taller than that, you need a cleanout at the base. On shorter buildings it's still good practice, but the code specifically requires it at 45 feet.",
+    "topic": "cleanouts",
+    "code_section": "815KAR20:090",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 3,
+    "tags": ["cleanout", "stack height"]
+  },
+  {
+    "id": "ky-def-001",
+    "prompt": "Per 815 KAR 20:010, what is an 'air break' in plumbing?",
+    "type": "mcq",
+    "choices": [
+      "A valve that releases trapped air from a water line",
+      "A piping arrangement where a drain discharges indirectly into another fixture at a point below the flood level rim",
+      "A gap between a faucet outlet and the flood level rim of a fixture",
+      "A mechanical device that prevents backflow"
+    ],
+    "answer": "A piping arrangement where a drain discharges indirectly into another fixture at a point below the flood level rim",
+    "explanation": "815 KAR 20:010 defines an air break as a piping arrangement for a drainage system in which a drain discharges indirectly into another fixture at a point below the flood level rim.",
+    "foreman_explanation": "Air break is below the rim — the pipe dumps in below the flood level. Don't confuse it with an air gap, which is ABOVE the rim. Air gap = above, air break = below. The test loves this distinction.",
+    "topic": "water_supply",
+    "code_section": "815KAR20:010",
+    "source": "ky-code-book-2023",
+    "verified": true,
+    "difficulty": 2,
+    "tags": ["air break", "definition", "indirect waste"]
+  }
+]
