@@ -5,7 +5,7 @@ let db: SQLite.SQLiteDatabase;
 
 export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
   if (!db) {
-    db = await SQLite.openDatabaseAsync('plumber_prep_v2.db');
+    db = await SQLite.openDatabaseAsync('plumber_prep_v3.db');
     await initializeDatabase(db);
   }
   return db;
@@ -63,6 +63,7 @@ async function initializeDatabase(database: SQLite.SQLiteDatabase): Promise<void
       next_review TEXT NOT NULL DEFAULT (datetime('now')),
       confidence_level INTEGER NOT NULL DEFAULT 0,
       bookmarked INTEGER NOT NULL DEFAULT 0,
+      missed_active INTEGER NOT NULL DEFAULT 0,
       FOREIGN KEY (question_id) REFERENCES questions(id)
     );
 
@@ -136,14 +137,13 @@ export async function getTopicQuestions(topic: string, count: number = 10): Prom
   return rows.map(parseQuestionRow);
 }
 
-export async function getMissedQuestions(count: number = 10): Promise<Question[]> {
+export async function getActiveMissedQuestions(): Promise<Question[]> {
   const db = await getDatabase();
   const rows = await db.getAllAsync<any>(
     `SELECT q.* FROM questions q
      INNER JOIN user_progress p ON q.id = p.question_id
-     WHERE p.times_seen > 0 AND p.accuracy < 1.0
-     ORDER BY p.accuracy ASC, p.last_seen ASC
-     LIMIT ?`, count
+     WHERE p.missed_active = 1
+     ORDER BY p.last_seen ASC`
   );
   return rows.map(parseQuestionRow);
 }
@@ -186,10 +186,12 @@ export async function recordAttempt(attempt: QuestionAttempt): Promise<void> {
     attempt.session_id, attempt.attempted_at
   );
 
-  // Update user_progress
+  // Update user_progress (missed_active = 1 on wrong answer, unchanged on correct)
+  const isCorrectInt = attempt.is_correct ? 1 : 0;
+  const missedOnInsert = attempt.is_correct ? 0 : 1;
   await db.runAsync(
-    `INSERT INTO user_progress (question_id, times_seen, times_correct, accuracy, last_seen, next_review, confidence_level, bookmarked)
-     VALUES (?, 1, ?, ?, datetime('now'), datetime('now', '+1 day'), 0, 0)
+    `INSERT INTO user_progress (question_id, times_seen, times_correct, accuracy, last_seen, next_review, confidence_level, bookmarked, missed_active)
+     VALUES (?, 1, ?, ?, datetime('now'), datetime('now', '+1 day'), 0, 0, ?)
      ON CONFLICT(question_id) DO UPDATE SET
        times_seen = times_seen + 1,
        times_correct = times_correct + ?,
@@ -198,13 +200,16 @@ export async function recordAttempt(attempt: QuestionAttempt): Promise<void> {
        next_review = CASE
          WHEN ? = 1 THEN datetime('now', '+' || MIN(CAST(POWER(2, times_correct) AS INTEGER), 30) || ' days')
          ELSE datetime('now', '+1 day')
-       END`,
+       END,
+       missed_active = CASE WHEN ? = 0 THEN 1 ELSE missed_active END`,
     attempt.question_id,
-    attempt.is_correct ? 1 : 0,
+    isCorrectInt,
     attempt.is_correct ? 1.0 : 0.0,
-    attempt.is_correct ? 1 : 0,
-    attempt.is_correct ? 1 : 0,
-    attempt.is_correct ? 1 : 0
+    missedOnInsert,
+    isCorrectInt,
+    isCorrectInt,
+    isCorrectInt,
+    isCorrectInt
   );
 }
 
@@ -298,9 +303,17 @@ export async function getOverallStats(): Promise<{
 export async function getMissedCount(): Promise<number> {
   const db = await getDatabase();
   const result = await db.getFirstAsync<{ count: number }>(
-    `SELECT COUNT(*) as count FROM user_progress WHERE times_seen > 0 AND accuracy < 1.0`
+    `SELECT COUNT(*) as count FROM user_progress WHERE missed_active = 1`
   );
   return result?.count ?? 0;
+}
+
+export async function clearMissedQuestion(questionId: string): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(
+    `UPDATE user_progress SET missed_active = 0 WHERE question_id = ?`,
+    questionId
+  );
 }
 
 // --- Code Section Queries ---
@@ -349,8 +362,8 @@ export async function toggleBookmark(questionId: string): Promise<boolean> {
   const newValue = existing ? (existing.bookmarked ? 0 : 1) : 1;
 
   await db.runAsync(
-    `INSERT INTO user_progress (question_id, times_seen, times_correct, accuracy, last_seen, next_review, confidence_level, bookmarked)
-     VALUES (?, 0, 0, 0, datetime('now'), datetime('now'), 0, ?)
+    `INSERT INTO user_progress (question_id, times_seen, times_correct, accuracy, last_seen, next_review, confidence_level, bookmarked, missed_active)
+     VALUES (?, 0, 0, 0, datetime('now'), datetime('now'), 0, ?, 0)
      ON CONFLICT(question_id) DO UPDATE SET bookmarked = ?`,
     questionId, newValue, newValue
   );

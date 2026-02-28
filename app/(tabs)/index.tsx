@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -8,6 +8,7 @@ import { getOverallStats, getMissedCount } from '@/lib/database';
 export default function HomeScreen() {
   const router = useRouter();
   const { overallStats, setOverallStats } = useAppStore();
+  const [missedCount, setMissedCount] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -17,8 +18,9 @@ export default function HomeScreen() {
 
   async function loadStats() {
     try {
-      const stats = await getOverallStats();
+      const [stats, missed] = await Promise.all([getOverallStats(), getMissedCount()]);
       setOverallStats(stats);
+      setMissedCount(missed);
     } catch (e) {
       console.error('Error loading stats:', e);
     }
@@ -52,13 +54,19 @@ export default function HomeScreen() {
         <Text style={styles.drillButtonSub}>10 questions, ~5 minutes</Text>
       </TouchableOpacity>
 
-      {/* Secondary Actions — Coming Soon */}
+      {/* Secondary Actions */}
       <View style={styles.actionRow}>
-        <View style={[styles.actionCard, styles.actionCardDisabled]}>
+        <TouchableOpacity
+          style={styles.actionCard}
+          onPress={() => router.push('/missed')}
+          activeOpacity={0.8}
+        >
           <Text style={styles.actionIcon}>🔄</Text>
           <Text style={styles.actionTitle}>Missed Questions</Text>
-          <Text style={styles.actionSub}>Coming soon</Text>
-        </View>
+          <Text style={styles.actionSub}>
+            {missedCount > 0 ? `${missedCount} to review` : 'None yet'}
+          </Text>
+        </TouchableOpacity>
 
         <View style={[styles.actionCard, styles.actionCardDisabled]}>
           <Text style={styles.actionIcon}>📝</Text>

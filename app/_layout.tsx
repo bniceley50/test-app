@@ -44,6 +44,7 @@ export default function RootLayout() {
       }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="drill" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="missed" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
         <Stack.Screen name="results" options={{ headerShown: false, presentation: 'modal' }} />
       </Stack>
     </>
