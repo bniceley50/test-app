@@ -46,7 +46,7 @@ npx expo start
 - iOS caveat: Expo Go on iOS uses a JS engine + native modules shipped with
   Expo Go — `expo-sqlite` works out of the box, nothing extra to do.
 
-## C. Airplane‑mode offline test (the P1 gate)
+## C. Airplane‑mode offline test (P1 gate — core flow)
 Do this on **each** phone (iOS first, then Android):
 
 1. **Warm it up online:** connect via the QR, wait for the app to fully load,
@@ -69,6 +69,39 @@ Do this on **each** phone (iOS first, then Android):
 Pass criteria for P1: steps 4–6 work with **zero** network access, on **both**
 phones, and nothing feels broken (no blank screens, no hanging spinners,
 no red error boxes).
+
+## C2. P4 offline re-test (new screens, after the P3/P4 build)
+Repeat on **both** phones (iOS first). Everything you do in steps 1–5 should
+survive the airplane relaunch in step 7 — that's the gate.
+
+1. **Connect** via QR; let the bundle load.
+2. **Topics tab:** heat grid shows all 13 topics (grey "Untested" is normal on
+   a fresh install). Tap one → topic drill → answer a couple, get one wrong.
+   Color should update as you go.
+3. **Code tab:** search "090" → expand a section → see its linked questions →
+   tap the ☆ on a section **and** on a question.
+4. **Home → Mock Exam:** start the **25 Q / 75 min** mode. Answer 3–4 (get at
+   least one wrong — the exam shows ZERO feedback mid-exam), then use
+   **Submit exam** on the last question. Results: score circle vs the **80%**
+   line, per-topic bars, and a missed-review list. Then **Drill my misses**.
+5. **Bookmarks tab:** your two bookmarks are there. Expand the question one,
+   type a note (e.g. "re-check 20:090 trap table"), leave the field.
+6. **Airplane mode ON** (all radios off) → **fully kill** the app
+   (iOS: swipe away; Android: Recents → swipe away).
+7. **Relaunch.** No spinner-hang. Check **each** tab:
+   - Home — stats/streak intact from the pre-airplane session.
+   - Drill — the questions you missed are likely at the TOP of the deck
+     (spaced-rep due-queue), and the questions you got right come back later
+     (their `next_review` moved out).
+   - Mock — finish one more 25-Q exam with zero network — timer, auto-submit
+     behavior (wait near zero), and breakdown all work.
+   - Bookmarks — your note survives the relaunch (it's in SQLite, not memory).
+   - Topics — colors still reflect your scores.
+   - Code — search + expand still instant; bookmark stars still filled.
+8. **Restart once more in airplane.** Everything from step 7 persists.
+
+P4 pass: steps 6–7 clean on **both** phones with zero network, and no red
+error cards anywhere on first touch of each screen.
 
 ## D. Known-expected behavior (not bugs)
 - First-ever bundle fetch needs internet (that's Expo Go's design).

@@ -12,6 +12,7 @@ export default function MissedScreen() {
   const [questionStartTime, setQuestionStartTime] = useState(Date.now());
   const [loading, setLoading] = useState(true);
   const [empty, setEmpty] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [fillValue, setFillValue] = useState('');
 
   useEffect(() => { loadQuestions(); }, []);
@@ -31,6 +32,7 @@ export default function MissedScreen() {
         return;
       }
 
+      setLoadError(false);
       startDrill(questions, 'missed');
 
       const session = {
@@ -46,6 +48,7 @@ export default function MissedScreen() {
       await createSession(session);
     } catch (e) {
       console.error('Error loading missed questions:', e);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -122,7 +125,18 @@ export default function MissedScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.emptyContainer}>
-          <Text style={styles.loadingText}>Loading missed questions...</Text>
+          <Text style={styles.loadingText}>
+            {loadError ? 'Could not load missed questions.' : 'Loading missed questions...'}
+          </Text>
+          {loadError && (
+            <TouchableOpacity
+              style={[styles.backButton, { borderColor: '#4fc3f7' }]}
+              onPress={loadQuestions}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.backButtonText}>Try again</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </SafeAreaView>
     );

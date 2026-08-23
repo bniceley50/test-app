@@ -62,6 +62,42 @@ Expo + React Native + TypeScript
 - **NativeWind**: Fast styling without boilerplate. You know Tailwind-like patterns.
 - **zustand**: Minimal state management. No Redux bloat.
 
+> **Stack note (2026-08-18, P0):** NativeWind + Tailwind ended up unused (screens
+> use raw `StyleSheet` with the `#16213e` / `#1a1a2e` / `#4fc3f7` palette) and were
+> removed along with `uuid` (local `lib/uid.ts`), `react-native-reanimated`, and
+> `react-native-worklets` — see `package.json`. Metro config adds `wasm` to
+> `resolver.assetExts` for the expo-sqlite web worker (`metro.config.js`).
+
+## STATUS (shipped as of 2026-08-18, branch `claude/general-session-jCAfN`)
+- **P0 green:** deps pruned; web + iOS + Android Metro exports all resolve clean.
+- **P1 green:** `eas.json` (development/preview/production), app identity
+  `com.brian.plumberprep` (provisional — change before first store build),
+  core confirmed on a real iPhone + Android via Expo Go, incl. airplane mode
+  (steps: `tasks/PHONE-ONBOARDING.md`).
+- **P2 shipped:** Mock Exam (`app/mock.tsx` — 25 Q/75 min, 50 Q/150 min pace;
+  timer, auto-submit, no mid-exam feedback, per-topic breakdown, 80% pass),
+  Topics heat grid (`(tabs)/topics.tsx`), Code Reference
+  (`(tabs)/code.tsx` — search, expandable, section→questions, bookmarks).
+  The bank is 41 verified Q, so the 50-Q exam runs 41 Q at the same 3 min/Q
+  pace (123 min) with a visible note until content grows.
+- **P3 shipped:** fill-in-the-blank UI + `lib/normalize.ts` grading (trim,
+  case-insensitive, "1/2"≡"0.5"); spaced-rep due-queue blended to the TOP of
+  Drill + Mock decks (`getDeckWithDue`); `bookmarks` table + Bookmarks tab
+  (questions + code sections, editable notes, tap-through).
+- **P4 remaining:** owner offline re-test after P3 on both phones, re-verify
+  flows, EAS production handoff (`eas build --platform ios|android --profile
+  production`), and this doc's sign-off box below.
+
+### Status: success criteria
+- [x] App launches on iOS via Expo Go (and Android)
+- [x] Can complete a 10-question drill with instant feedback
+- [x] Wrong answers appear in Missed Mode
+- [ ] Mock exam times and scores correctly — **code complete, owner phone pass pending**
+- [x] Topic dashboard shows accuracy heat map
+- [x] Code sections searchable and linked to questions
+- [x] Works fully offline (airplane mode test) — **P1 pass; P3 re-test pending**
+- [ ] 200+ seed questions across all major topics — **41 verified shipped; growth is a content task, UI is ready**
+
 ### Data Model
 
 ```

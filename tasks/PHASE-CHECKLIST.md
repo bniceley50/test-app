@@ -45,14 +45,14 @@ Rule: only `verified:1` questions ever enter a study mode (drill / missed / mock
 - [x] Bookmark buttons on drill answer card, code-section detail, and question view. *(drill answer card star + Code Reference per-section and per-question stars, all → `bookmarks` table, 2026-08-18)*
 
 ## Phase 4 — Quality & ship
-- [ ] Unified loading / empty / error states across all screens.
-- [ ] Home stats + streak consistent and correct.
-- [ ] Offline re-test passes after P3 changes (spaced-rep + bookmarks both read SQLite).
-- [ ] Full flow re-verified on BOTH iOS and Android.
-- [ ] `tasks/todo.md` updated to reflect shipped scope; `tasks/lessons.md` updated if anything new learned.
-- [ ] Production iOS (`.ipa`) / Android (`.aab`) build commands handed off (or built).
+- [x] Unified loading / empty / error states across all screens. *(2026-08-18: Home stats error card; Drill + Missed error + "Try again"; Topics/Code/Bookmarks have error + empty + refresh; Mock has its own load error + setup; all data reads are local SQLite — no network anywhere.)*
+- [x] Home stats + streak consistent and correct. *(SQL-driven: sessions/day streak + accuracy average; unchanged by P3 — tsc + bundle green.)*
+- [ ] Offline re-test passes after P3 changes (spaced-rep + bookmarks both read SQLite). *(owner — same script as before, now also: bookmark something, add a note, run a mock; airplane relaunch should keep everything.)*
+- [ ] Full flow re-verified on BOTH iOS and Android. *(owner — new surface since the last phone pass: Mock, Topics, Code, Bookmarks, fill-blank UI.)*
+- [x] `tasks/todo.md` updated to reflect shipped scope; `tasks/lessons.md` updated if anything new learned. *(STATUS section + success-criteria box in todo.md; 4 new lessons in lessons.md: wasm assetExt, verified-filter-in-query, dist/ export race, SQLite NULL-unique.)*
+- [x] Production iOS (`.ipa`) / Android (`.aab`) build commands handed off (or built). *(PHONE-ONBOARDING.md §E + todo.md STATUS: `eas build --platform ios|android --profile production` after `eas login`.)*
 
 ## Sign-off
-- [ ] All screens working: Home, Drill, Missed, Mock, Topics, Code Reference, Bookmarks.
-- [ ] Fully offline on a real phone (airplane mode), iOS + Android.
+- [ ] All screens working: Home, Drill, Missed, Mock, Topics, Code Reference, Bookmarks. *(code + bundle-verified all 3 targets 2026-08-18; awaiting owner's phone pass on the new screens.)*
+- [ ] Fully offline on a real phone (airplane mode), iOS + Android. *(P1 pass pre-P3; P3 re-test outstanding with the owner.)*
 - [ ] Owner runs one full study cycle on their phone and confirms it "feels done."

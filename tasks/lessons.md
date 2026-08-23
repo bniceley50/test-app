@@ -17,6 +17,26 @@
 - **Rule**: The first meaningful commit should include the core data schema + minimum viable seed data, not empty scaffolding.
 - **Date**: 2026-02-28
 
+### 4. [expo] Metro web needs `wasm` in `resolver.assetExts` for expo-sqlite
+- **Pattern**: `npx expo export --platform web` failed with "Unable to resolve module ./wa-sqlite/wa-sqlite.wasm from node_modules/expo-sqlite/web/worker.ts" — native (iOS/Android) exports built fine, so it hid until the web target was tested.
+- **Rule**: Any expo package that imports a WASM binary as an asset URL (expo-sqlite's web worker) needs a small `metro.config.js` that pushes `'wasm'` onto the default `config.resolver.assetExts`. Add it the day you add the package; verify with web export, not just native.
+- **Date**: 2026-08-18
+
+### 5. [ui] Study modes must filter `verified = 1` at the query, not the UI
+- **Pattern**: The seed contract says only verified KY content ships, but the guarantee only means something if every deck-builder query enforces it. A UI-side filter is one refactor away from leaking drafts.
+- **Rule**: Put `WHERE verified = 1` in each deck query (`getDrillQuestions`, `getTopicQuestions`, `getDeckWithDue`, `getMockExamQuestions`…); the UI can then be content-agnostic.
+- **Date**: 2026-08-18
+
+### 6. [infra] Don't run two `expo export`s against the same `dist/` at once
+- **Pattern**: Exporting web and ios/android as two parallel background jobs raced on `dist/`; one died with `EPERM: operation not permitted, rmdir 'dist/_expo/static/js'` even though the bundle compiles fine.
+- **Rule**: Export all platforms in ONE command (`npx expo export --platform web --platform ios --platform android`) or serialize them; treat a mid-write `EPERM rmdir` as a race, not a code error.
+- **Date**: 2026-08-18
+
+### 7. [db] SQLite UNIQUE treats NULLs as distinct — use `''` sentinels for optional refs
+- **Pattern**: A `bookmarks` row stores either a question OR a code-section ref. With `UNIQUE(kind, question_id, code_section_id)` and nullable columns, SQLite's "NULL is distinct" rule let duplicate rows slip through.
+- **Rule**: For nullable multi-value unique keys, make the columns `NOT NULL` with an empty-string sentinel for the unused column (and drop the FKs, since `''` would violate them), then enforce the "one ref must be set" rule app-side.
+- **Date**: 2026-08-18
+
 ## Format
 Each lesson should include:
 - **Category tag**: [auth], [db], [testing], [ui], [infra], [content], [expo], [navigation]

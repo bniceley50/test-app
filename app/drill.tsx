@@ -13,6 +13,7 @@ export default function DrillScreen() {
   const { drill, startDrill, answerQuestion, nextQuestion, endDrill, showExplanation, showForemanMode } = useAppStore();
   const [questionStartTime, setQuestionStartTime] = useState(Date.now());
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [bookmarkedQs, setBookmarkedQs] = useState<Record<string, boolean>>({});
   const [fillValue, setFillValue] = useState('');
 
@@ -53,6 +54,7 @@ export default function DrillScreen() {
         return;
       }
 
+      setLoadError(false);
       startDrill(questions, params.topic ? 'topic' : 'drill');
 
       const session = {
@@ -68,6 +70,7 @@ export default function DrillScreen() {
       await createSession(session);
     } catch (e) {
       console.error('Error loading questions:', e);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -130,7 +133,18 @@ export default function DrillScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading questions...</Text>
+          <Text style={styles.loadingText}>
+            {loadError ? 'Could not load questions — check the console, or go back and try again.' : 'Loading questions...'}
+          </Text>
+          {loadError && (
+            <TouchableOpacity
+              style={{ marginTop: 16, backgroundColor: '#4fc3f7', borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12 }}
+              onPress={loadQuestions}
+              activeOpacity={0.8}
+            >
+              <Text style={{ color: '#1a1a2e', fontSize: 15, fontWeight: 'bold' }}>Try again</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </SafeAreaView>
     );
