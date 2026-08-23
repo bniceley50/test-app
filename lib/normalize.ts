@@ -8,19 +8,15 @@
  * the blank was clearly the value itself is NOT treated as equal here — a
  * unit on one side only loses the match unless the other has no word chars).
  */
-function stripParens(s: string): string {
-  return s.replace(/\(([^)]*)\)/g, ' $1 ').replace(/\/\(([^)]*)\)(?![^()]*\))/g, ' or $1');
-}
-
 /**
  * Canonical form for comparison: lowercase, collapse spaces, strip trailing
- * punctuation, strip parenthesized alternatives unless the whole string is
- * just a parenthesized alternative.
+ * punctuation, and drop parenthesized annotations ("1/2 (nom) in" → "1/2 in")
+ * so plain and annotated forms compare equal.
  */
 export function normalizeAnswer(s: string | null | undefined): string {
   if (!s) return '';
   let t = String(s).trim();
-  t = stripParens(t);
+  t = t.replace(/\([^)]*\)/g, ' ');
   t = t.replace(/[.,;:!?]+$/g, '');
   t = t.replace(/\s+/g, ' ').trim().toLowerCase();
   return t;

@@ -378,8 +378,8 @@ export async function searchCodeSections(query: string): Promise<CodeSection[]> 
   const db = await getDatabase();
   const pattern = `%${query}%`;
   const rows = await db.getAllAsync<any>(
-    `SELECT * FROM code_sections WHERE title LIKE ? OR short_summary LIKE ? OR keywords LIKE ? ORDER BY section`,
-    pattern, pattern, pattern
+    `SELECT * FROM code_sections WHERE section LIKE ? OR title LIKE ? OR short_summary LIKE ? OR keywords LIKE ? ORDER BY section`,
+    pattern, pattern, pattern, pattern
   );
   return rows.map(parseCodeSectionRow);
 }
