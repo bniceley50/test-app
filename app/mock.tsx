@@ -64,6 +64,12 @@ export default function MockExamScreen() {
     setFillValue('');
   }, [currentIndex]);
 
+  // The interval below outlives many renders; always call the LATEST
+  // submitExam so auto-submit scores the live answers, not the stale
+  // closure captured when the timer effect first ran.
+  const submitRef = useRef<(auto: boolean) => Promise<void>>(() => Promise.resolve());
+  submitRef.current = submitExam;
+
   // --- Timer ---
   useEffect(() => {
     if (phase !== 'exam') return;
@@ -71,7 +77,7 @@ export default function MockExamScreen() {
       const remaining = endTsRef.current - Date.now();
       setRemainingMs(Math.max(0, remaining));
       if (remaining <= 0) {
-        void submitExam(true);
+        void submitRef.current?.(true);
       }
     };
     tick();
