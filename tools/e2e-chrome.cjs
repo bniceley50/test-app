@@ -355,7 +355,6 @@ const HELPER_SRC = `(function(){
   const topics = await waitFor(t => t.includes('Topic Breakdown'), 40000, 'topics');
   step('topics: grid renders with per-topic percentages', topics.includes('Topic Breakdown') && /%/.test(topics));
 
-  // 9b. Topics → tap a topic → topic-FILTERED drill deck (topic param flows through)
   //     The topic slug is law_licensing; the card Text renders "Law Licensing"
   //     (pretty/title case) and the drill badge uppercases it to "LAW LICENSING".
   const topicsTapRes = await tap(`window.__tap('Licensing', 1)`);
@@ -396,6 +395,133 @@ const HELPER_SRC = `(function(){
   step('code: search filters list to matching sections (storm → only 20:130, others drop out)',
     hadAll && afterShows043 && afterDropped090 && afterDropped070);
   console.log('  code search: hadAllList=' + hadAll + ' | after "storm": 043-shown=' + afterShows043 + ', 090-gone=' + afterDropped090 + ', 070-gone=' + afterDropped070);
+
+  // 10c. Code-section bookmarking (P2 locked: bookmarkable code sections).
+  //     The star is a sibling of the "090" text inside the card head, so the
+  //     usual ancestor-chain __tap cannot reach it — walk the DOM from the
+  //     090 text, climb to the card head whose last child is the star/chevron
+  //     column, and tap the star glyph (immediate parent = its pressable span).
+  // (innermost node whose whole text is a star glyph — the card-level star Text)
+  const starWalker = `
+    const OPEN6 = String.fromCharCode(0x2606);
+    const FILLED5 = String.fromCharCode(0x2605);
+    const findStarEl = (root) => {
+      const all = [root].concat(Array.from(root.querySelectorAll('div,span')));
+      for (const e of all) {
+        const t = (e.textContent || '').trim();
+        if ((t === OPEN6 || t === FILLED5) && !e.querySelector('div,span')) return e;
+      }
+      return null;
+    };
+    const starFor = (section) => {
+      const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT); let n;
+      while ((n = w.nextNode())) if (n.nodeValue && n.nodeValue.indexOf(section) !== -1) {
+        let node = n.parentElement;
+        for (let i = 0; i < 12 && node; i++) {
+          const el = findStarEl(node);
+          if (el) return { el, level: i };
+          node = node.parentElement;
+        }
+      }
+      return null;
+    };` + `
+`;
+  const csTap = `(function(){
+    const FULL = (el) => { const o={bubbles:true,cancelable:true,view:window,pointerId:1,isPrimary:true};
+      el.dispatchEvent(new PointerEvent('pointerdown',Object.assign(o,{pointerType:'touch'})));
+      el.dispatchEvent(new MouseEvent('mousedown',o));
+      el.dispatchEvent(new PointerEvent('pointerup',Object.assign(o,{pointerType:'touch'})));
+      el.dispatchEvent(new MouseEvent('mouseup',o));
+      el.dispatchEvent(new MouseEvent('click',o)); };
+    ` + starWalker + `
+    const hit = starFor('815KAR20:090');
+    if (!hit) return 'no-star-for-090';
+    const glyph = (hit.el.textContent || '').trim();
+    FULL(hit.el);
+    return 'tapped ' + glyph + ' (ancestor-level ' + hit.level + ')';
+  })()`;
+  // fresh /code page: guarantees the search filter state is clear
+  await nav('/code');
+  await waitFor(t => t.includes('815KAR20:090'), 40000, '090 visible on fresh code page');
+  const starRes = await tap(csTap);
+  console.log('  code star: first tap=' + starRes);
+  // glyph contract from code.tsx: bookmarked → '★' (U+2605), not bookmarked → '☆' (U+2606).
+  // loop until the star shows FILLED5, re-tapping if the toggle didn't stick.
+  const glyphProbe = `(function(){
+    ` + starWalker + `
+    const hit = starFor('815KAR20:090');
+    if (!hit) return '?';
+    return (hit.el.textContent || '').trim();
+  })()`;
+  const FILLED5 = String.fromCharCode(0x2605);
+  let bookmarked = false;
+  for (let i = 0; i < 3 && !bookmarked; i++) {
+    await sleep(2200); // toggleSectionBookmark -> load(query) re-read
+    const glyph = await evRaw(glyphProbe);
+    console.log('  code star glyph: ' + glyph + ' (U+' + ((glyph.charCodeAt(0) || 0).toString(16)) + ')');
+    bookmarked = glyph === FILLED5;
+    if (!bookmarked) await tap(csTap);
+  }
+  await sleep(1500);
+  await nav('/bookmarks');
+  const csListText = await waitFor(t => t.includes('CODE SECTION') || t.includes('No bookmarks yet') || t.includes('QUESTION'), 30000, 'bookmarks after code bm');
+  const csGate = csListText.includes('CODE SECTION');
+  step('code: section star bookmarks 090 → listed on Bookmarks as a CODE SECTION entry', csGate);
+  console.log('  code star: tap=' + starRes + ' | listed=' + csGate);
+  if (csGate) await shot('10-code-section-bookmarked');
+
+  // 11. Fill-in-the-blank UI + normalized matching (P3 locked), live.
+  //     The seed bank is all-MCQ, so arm ONE synthetic verified fill_blank
+  //     question (fractional answer "1/2") via the seam. It's made MORE overdue
+  //     (-30d) than the due-gate's backdated real question (-7d), so it
+  //     deterministically leads the deck and its type-in UI is what Q1 renders.
+  //     Drill allows ONE fill answer per question, so we use it for the strong
+  //     proof: typing "0.5" must grade "Correct!" (= normalized equivalence
+  //     "1/2" ≡ "0.5", numeric path in lib/normalize.ts).
+  const fbInsert = await evAwait(`(async () => {
+    const db = globalThis.__plumberDb;
+    if (!db) return 'no-seam';
+    const qid = 'fb-e2e-1';
+    if (await db.getFirstAsync("SELECT 1 FROM questions WHERE id = ?", qid)) return 'already';
+    await db.runAsync(
+      "INSERT INTO questions (id, prompt, type, choices, answer, explanation, foreman_explanation, code_section, topic, difficulty, tags, source, verified) VALUES (?, ?, 'fill_blank', '[]', ?, ?, ?, '', 'testing', 1, '[]', 'e2e', 1)",
+      qid, 'The standard minimum vent pipe size is blank in inches.', '1/2', 'e2e fill-blank', ''
+    );
+    await db.runAsync(
+      "INSERT INTO user_progress (question_id, times_seen, times_correct, accuracy, last_seen, next_review, confidence_level, bookmarked, missed_active) VALUES (?, 0, 0, 0, datetime('now'), datetime('now', '-30 days'), 0, 0, 0)",
+      qid
+    );
+    return 'inserted';
+  })()`);
+  console.log('  fill-blank seam: ' + fbInsert);
+  if (fbInsert !== 'already' && fbInsert !== 'inserted') step('fill-blank: test seam reachable + synthetic question (got: ' + fbInsert + ')', false);
+  let fillGate = false;
+  if (fbInsert === 'already' || fbInsert === 'inserted') {
+    await nav('/drill');
+    const fbScreen = await waitFor(t => /\b1 \/ 1[01]\b/.test(t), 40000, 'fill-blank deck');
+    // "Check answer" only exists on a fill_blank question's card (MCQ shows A/B/C/D),
+    // and innerText doesn't expose input placeholders — so it's the reliable signal.
+    const isFilled = fbScreen.includes('Check answer');
+    if (isFilled) {
+      step('fill-blank: due fill_blank question leads the deck with the type-in UI', true);
+      await shot('11-fill-blank-ui');
+      const focusRes = await tap(`window.__focusInput('Type your answer')`);
+      await sleep(700);
+      await cdpSend('Input.insertText', { text: '0.5' });
+      await sleep(1000);
+      const checkRes = await tap(`window.__tapExact('Check answer')`);
+      await sleep(2200);
+      const t = await bodyText();
+      const correctShown = t.includes('Correct!');
+      fillGate = correctShown;
+      step('fill-blank: normalized matching — typing "0.5" grades CORRECT vs stored "1/2"', fillGate);
+      console.log('  fill-blank: focus=' + focusRes + ' | check=' + checkRes + ' | correctShown=' + correctShown);
+      if (fillGate) await shot('13-fill-blank-correct');
+    } else {
+      step('fill-blank: due fill_blank question leads the deck with the type-in UI', false);
+      console.log('  fill-blank did not lead: ' + fbScreen.slice(0, 80).replace(/\n/g, ' | '));
+    }
+  }
 
   console.log('\nE2E result: ' + (failures.length ? failures.length + ' FAILURE(S): ' + failures.join(' | ') : 'ALL STEPS PASSED'));
   console.log('profile kept at ' + profile);
