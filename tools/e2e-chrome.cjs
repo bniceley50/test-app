@@ -192,6 +192,27 @@ const HELPER_SRC = `(function(){
   console.log('  results head: ' + resultsText.slice(0, 110).replace(/\n/g, ' | '));
   if (reachedResults) await shot('04-mock-results');
 
+  // 2b. Locked time-scaling behavior: with the 41-question bank, the 50-Q mode
+  //     must draw 41 questions and start a 123:00 countdown (3 min/Q), and the
+  //     setup screen states the scaling plainly. (startExam: minutes =
+  //     min(mode.minutes, round(drawn * mode.minutes / mode.count)).)
+  await nav('/mock');
+  const setup2 = await waitFor(t => t.includes('50 questions'), 40000, 'mock setup (50Q)');
+  step('mock: setup states the scaled exam (41 Q / 123 min) for the 50-Q mode',
+    setup2.includes('41 Q / 123 min'));
+  let scaledOk = false;
+  for (let attempt = 0; attempt < 6 && !scaledOk; attempt++) {
+    const tapRes = await tap(`window.__tap('50 questions', 3)`);
+    await sleep(2500);
+    const t = await bodyText();
+    // A scaled 123-minute countdown reads 122:5x seconds after start — anything
+    // 122–123 proves scaling (a full 150-min exam would read 149:xx).
+    scaledOk = /\b1 \/ 41\b/.test(t) && /\b12[23]:\d{2}\b/.test(t) && t.includes('0 answered');
+    if (!scaledOk) console.log(`  50Q start attempt ${attempt}: ${tapRes}`);
+  }
+  step('mock: 50-Q mode starts scaled — 41 questions drawn, 123:00 countdown, 0 answered', scaledOk);
+  if (scaledOk) await shot('08-mock-50q-123min');
+
   // 3. Home reflects mock activity
   await nav('/');
   const home2 = await waitFor(t => t.includes('KY Plumber Prep'), 60000, 'home post-mock');
