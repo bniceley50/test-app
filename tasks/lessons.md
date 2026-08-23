@@ -37,6 +37,16 @@
 - **Rule**: For nullable multi-value unique keys, make the columns `NOT NULL` with an empty-string sentinel for the unused column (and drop the FKs, since `''` would violate them), then enforce the "one ref must be set" rule app-side.
 - **Date**: 2026-08-18
 
+### 8. [testing] Reproduce the app DB in a smoke script so logic is testable without a phone
+- **Pattern**: Deck-building, spaced-rep, and bookmark logic only ran "in the field" (phone), so bugs (code search missing the `section` column, normalize() paren handling, stale timer closure) could sit undetected or get caught only by the owner.
+- **Rule**: Keep `tools/db-smoke.mjs` (Node `node:sqlite` + the real seed JSON, replicating `initializeDatabase`'s schema and the deck/bookmark queries). Every DB/normalize change gets re-run against it (`node tools/db-smoke.mjs`) before anything ships to a phone; it currently covers seeding, due-queue ordering, progress upserts, bookmark uniqueness, section counts/search, and normalize() matching.
+- **Date**: 2026-08-18
+
+### 9. [expo] Typed-routes can break latent template components after the route set changes
+- **Pattern**: The template `components/ExternalLink.tsx` typed `href` as plain `string`; it compiled while the route set was small, but once the app grew to 13 routes, typedRoutes regenerated `.expo/types/router.d.ts` and `string` no longer fit the `Link` href union — tsc only caught it after the route set changed, not when the file was "written".
+- **Rule**: After adding/removing routes, always run a full `npx tsc --noEmit`; when a template helper needs a plain-string href, keep the `href: string` API and cast once at the `<Link>` boundary instead of fighting the union.
+- **Date**: 2026-08-18
+
 ## Format
 Each lesson should include:
 - **Category tag**: [auth], [db], [testing], [ui], [infra], [content], [expo], [navigation]

@@ -9,6 +9,9 @@ dist/
 web-build/
 expo-env.d.ts
 
+# smoke-test database artifact
+tools/smoke-plumber.db*
+
 # Native
 .kotlin/
 *.orig.*
