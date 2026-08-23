@@ -62,6 +62,11 @@
 - **Rule**: In `tools/e2e-chrome.cjs`, `__focusInput()` focuses the field and CDP `Input.insertText` does the typing (what a real user is, for React). Same family of trap as lesson 11: the probe that "types" must be as real as the user it emulates.
 - **Date**: 2026-08-23
 
+### 13. [infra] Metro's file watcher dies when a hidden edit-temp dir vanishes mid-scan (Windows)
+- **Pattern**: The web dev server (pwsh background job) crashed outright with `Error: ENOENT/EPERM: watch 'D:\test-app\…\.PHASE-CHECKLIST.md.<pid>.<guid>.tmpdir'` from `metro-file-map/src/watchers/FallbackWatcher`. Every file edit the harness performs creates a hidden `.NAME.<pid>.<uuid>.tmpdir` next to the file; Metro's fallback walker races the dir-creation, fails to `watch()` it after it's renamed away, and the whole Metro process throws (uncaught), silently killing `expo start`. Symptoms: app was fine mid-E2E, then every later `waitFor` times out at ECONNREFUSED.
+- **Rule**: If the web server job (or any long `expo start`) dies with an uncaught `FSWatcher` error after files were created/edited, don't chase app code — restart the server and treat it as a watcher race. Keep dev-server jobs separate from edit-heavy phases when possible; the E2E run itself is the smoke test that the server is alive.
+- **Date**: 2026-08-23
+
 ## Format
 Each lesson should include:
 - **Category tag**: [auth], [db], [testing], [ui], [infra], [content], [expo], [navigation]
