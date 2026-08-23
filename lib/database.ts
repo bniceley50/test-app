@@ -8,6 +8,10 @@ export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
   if (!db) {
     db = await SQLite.openDatabaseAsync('plumber_prep_v3.db');
     await initializeDatabase(db);
+    // Test seam: expose the live handle so tools/e2e-chrome.cjs can backdate a
+    // user_progress.next_review and prove the spaced-rep due-queue leads the
+    // deck. Purely additive — no prod logic reads this.
+    (globalThis as Record<string, unknown>)['__plumberDb'] = db;
   }
   return db;
 }

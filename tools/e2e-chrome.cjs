@@ -53,6 +53,13 @@ async function tap(expr) {
   await evRaw(HELPER_SRC);
   return evRaw(expr);
 }
+// like evRaw, but awaits returned promises (for in-page async DB calls via the test seam)
+async function evAwait(expression) {
+  const r = await cdpSend('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
+  if (r.result && typeof r.result.value === 'string') return r.result.value;
+  if (r.exceptionDetails) return 'ERR ' + r.exceptionDetails.text;
+  return '';
+}
 async function waitFor(predicate, timeoutMs, label) {
   const t0 = Date.now();
   let last = '';
@@ -255,6 +262,36 @@ const HELPER_SRC = `(function(){
     /\b\d+ \/ 10\b/.test(drillResults) && (drillResults.includes('Passing Score!') || drillResults.includes('Keep Drilling')));
   console.log('  drill results head: ' + drillResults.slice(0, 100).replace(/\n/g, ' | '));
   await shot('05-drill-results');
+
+  // 5b. Spaced-rep (locked P3): the due queue must LEAD the deck.
+  //     Fresh profiles have no due rows (first answer sets next_review = +1d),
+  //     so use the documented test seam (lib/database.ts __plumberDb) to
+  //     backdate exactly one drilled question's next_review by 7 days, then
+  //     re-enter Drill and assert it is served first.
+  const dueSettled = await evAwait(`(async () => {
+    const db = globalThis.__plumberDb;
+    if (!db) return 'no-seam';
+    const row = await db.getFirstAsync('SELECT p.question_id, q.prompt, q.topic FROM user_progress p JOIN questions q ON q.id = p.question_id WHERE q.verified = 1 ORDER BY p.question_id ASC LIMIT 1');
+    if (!row) return 'no-progress-rows';
+    await db.runAsync("UPDATE user_progress SET next_review = datetime('now', '-7 days') WHERE question_id = ?", row.question_id);
+    return JSON.stringify({ prompt: row.prompt, topic: row.topic });
+  })()`);
+  let dueInfo = null;
+  try { dueInfo = JSON.parse(dueSettled); } catch (e) {}
+  const dueLedDeck = !!(dueInfo && dueInfo.prompt);
+  const duePredText = dueInfo ? dueInfo.prompt.slice(0, 40) : dueSettled;
+  console.log('  due backdate: ' + (duePredText ? duePredText.replace(/\n/g, ' ') : '(none)'));
+
+  let dueGate = false;
+  if (dueInfo) {
+    const dueTopicBadge = String(dueInfo.topic).replace(/_/g, ' ').toUpperCase();
+    await nav('/drill');
+    const dueDrill = await waitFor(t => /\b1 \/ \d+\b/.test(t), 40000, 'due-led drill');
+    dueGate = typeof dueInfo.prompt === 'string' && dueDrill.includes(dueInfo.prompt.slice(0, 40))
+      && dueDrill.toUpperCase().includes(dueTopicBadge.split(' ')[0]);
+  }
+  step('due-queue: backdated (7-day-overdue) question is served FIRST in the Drill deck', dueGate);
+  await shot('09-due-queue-led');
 
   // 6. Bookmarks: entry exists, expand, save a note
   await nav('/bookmarks');
