@@ -57,6 +57,11 @@
 - **Rule**: Verify web with `tools/e2e-chrome.cjs` — real Chrome (non-headless) driven over CDP (`--remote-debugging-port=9223`), fresh `--user-data-dir` per run (empty OPFS → exercises first-boot seeding), pointer-event taps (RN-web hit-tests `pointerup` against the touchable), and a `waitFor(predicate, timeout)` loop on `document.body.innerText`. Screenshots land in `tasks/evidence/`. Reserve headless `--dump-dom` for "does the server answer 200" checks, not "did React mount".
 - **Date**: 2026-08-23
 
+### 12. [testing] React-controlled RN-web TextInput ignores synthetic `input` events — type via CDP `Input.insertText`
+- **Pattern**: Typing into the bookmark note field from a CDP script "failed": setting `el.value` with the native setter + dispatching `input`/`InputEvent` updated the DOM value and the event even reached React's root listener, yet `onChangeText` never fired and the value reverted on re-render. RN-web's controlled TextInput only commits text through the browser's real insertion path.
+- **Rule**: In `tools/e2e-chrome.cjs`, `__focusInput()` focuses the field and CDP `Input.insertText` does the typing (what a real user is, for React). Same family of trap as lesson 11: the probe that "types" must be as real as the user it emulates.
+- **Date**: 2026-08-23
+
 ## Format
 Each lesson should include:
 - **Category tag**: [auth], [db], [testing], [ui], [infra], [content], [expo], [navigation]
