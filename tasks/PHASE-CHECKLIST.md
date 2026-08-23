@@ -26,23 +26,23 @@ Rule: only `verified:1` questions ever enter a study mode (drill / missed / mock
 - [x] `eas.json` present: `development`, `preview`, `production` profiles. *(written 2026-08-18)*
 - [x] iOS identity set (bundle id `com.brian.plumberprep`, icon) from existing `assets/`. *(verified via `npx expo config --type public`; provisional id — change before first store submission, see PHONE-ONBOARDING §F)*
 - [x] Android identity set (package `com.brian.plumberprep`, adaptive icon) from existing `assets/`. *(same as above)*
-- [ ] Core runs on a REAL iOS device (Expo Go) — full drill works offline. *(owner: tasks/PHONE-ONBOARDING.md §C)*
-- [ ] Core runs on a REAL Android device (Expo Go) — full drill works offline. *(owner: tasks/PHONE-ONBOARDING.md §C)*
-- [ ] Airplane-mode offline test passes on a phone (DB seeded from bundle, no network). *(owner: tasks/PHONE-ONBOARDING.md §C, steps 1–6)*
+- [x] Core runs on a REAL iOS device (Expo Go) — full drill works offline. *(owner confirmed 2026-08-18, per tasks/PHONE-ONBOARDING.md §C)*
+- [x] Core runs on a REAL Android device (Expo Go) — full drill works offline. *(owner confirmed 2026-08-18, per tasks/PHONE-ONBOARDING.md §C)*
+- [x] Airplane-mode offline test passes on a phone (DB seeded from bundle, no network). *(owner confirmed 2026-08-18 — both iOS and Android)*
 - [x] Install steps documented in `tasks/` (how to get it on a phone via Expo Go). *(tasks/PHONE-ONBOARDING.md §A–B)*
 
 ## Phase 2 — Finish the three stub screens
-- [ ] **Mock Exam** (`app/mock.tsx`): 25/50 Q picker; timer; auto-submit; breakdown; pass/fail.
-- [ ] **Topics** (`app/(tabs)/topics.tsx`): 13-topic heat grid (green>80 / yellow 60–80 / red<60); tap → topic drill.
-- [ ] **Code Reference** (`app/(tabs)/code.tsx`): search; expandable summary + text; section → its questions; bookmark.
-- [ ] Home nav links wired to all of the above.
+- [x] **Mock Exam** (`app/mock.tsx`): 25/50 Q picker; timer; auto-submit; breakdown; pass/fail. *(built 2026-08-18: picker with locked 3 min/Q pace (25→75m, 50→150m; bank of 41 → 41 Q/123m with a visible note), live countdown that turns red under 5:00, auto-submit with a banner, NO feedback during the exam (select→advance, skip=blank, back=revise), per-topic breakdown bars + 80% pass circle, missed-question review with answers + explanations. tsc clean; web + iOS + Android exports all green. Owner phone pass pending.)*
+- [x] **Topics** (`app/(tabs)/topics.tsx`): 13-topic heat grid (green>80 / yellow 60–80 / red<60); tap → topic drill. *(built 2026-08-18: 2-up grid of all 13 seeded topics, legend, refresh-to-update, untested = neutral, tap → /drill?topic=slug, error + empty states.)*
+- [x] **Code Reference** (`app/(tabs)/code.tsx`): search; expandable summary + text; section → its questions; bookmark. *(built 2026-08-18: 250ms-debounced search over title/summary/keywords, expandable cards with keyword chips + linked questions (prompt/answer/explanation), per-section and per-question bookmark stars → new `bookmarks` table, empty + error states.)*
+- [x] Home nav links wired to all of the above. *(Mock card enabled on Home; Topics/Code already in tab bar. Drill answer card also got a bookmark star — P3 item pulled forward.)*
 
 ## Phase 3 — Fill the deliberate gaps
 - [ ] Fill-in-the-blank UI renders + grades (normalized trim/case-insensitive match); only verified enter the pool.
 - [ ] Spaced-rep "due" queue: `next_review <= now` + lower-confidence-first blends to top of Drill + Mock decks.
-- [ ] Bookmarks table (`id, question_id, code_section_id, note, created_at`).
+- [x] Bookmarks table (`id, kind, question_id, code_section_id, note, created_at`). *(created 2026-08-18 in P2 — `kind` discriminates question vs code-section refs; `note` pre-wired for the Bookmarks screen).*
 - [ ] Bookmarks screen: list bookmarked questions + code sections; editable notes; tap-through.
-- [ ] Bookmark buttons on drill answer card, code-section detail, and question view.
+- [x] Bookmark buttons on drill answer card, code-section detail, and question view. *(drill answer card star + Code Reference per-section and per-question stars, all → `bookmarks` table, 2026-08-18)*
 
 ## Phase 4 — Quality & ship
 - [ ] Unified loading / empty / error states across all screens.

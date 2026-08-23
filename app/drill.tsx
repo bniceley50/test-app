@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAppStore } from '@/lib/store';
-import { getDrillQuestions, getTopicQuestions, recordAttempt, createSession, completeSession } from '@/lib/database';
+import { getDrillQuestions, getTopicQuestions, recordAttempt, createSession, completeSession,
+  getBookmarkMap, toggleBookmarkRef } from '@/lib/database';
 import { uid } from '@/lib/uid';
 
 export default function DrillScreen() {
@@ -11,6 +12,24 @@ export default function DrillScreen() {
   const { drill, startDrill, answerQuestion, nextQuestion, endDrill, showExplanation, showForemanMode } = useAppStore();
   const [questionStartTime, setQuestionStartTime] = useState(Date.now());
   const [loading, setLoading] = useState(true);
+  const [bookmarkedQs, setBookmarkedQs] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    getBookmarkMap()
+      .then(map => {
+        const rec: Record<string, boolean> = {};
+        map.forEach((row, key) => { if (row.kind === 'question') rec[key] = true; });
+        setBookmarkedQs(rec);
+      })
+      .catch(e => console.error('Failed to load bookmarks:', e));
+  }, []);
+
+  async function handleBookmark() {
+    if (!drill) return;
+    const q = drill.questions[drill.currentIndex];
+    const nowOn = await toggleBookmarkRef('question', q.id, '');
+    setBookmarkedQs(prev => ({ ...prev, [`question:${q.id}`]: nowOn }));
+  }
 
   useEffect(() => {
     loadQuestions();
@@ -196,6 +215,27 @@ export default function DrillScreen() {
                 <Text style={styles.codeRefSection}>Section {question.code_section}</Text>
               </View>
             )}
+
+            <TouchableOpacity
+              style={styles.bookmarkBtn}
+              onPress={handleBookmark}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              activeOpacity={0.7}
+            >
+              <Text style={[
+                styles.bookmarkStar,
+                { color: bookmarkedQs[`question:${question.id}`] ? '#4fc3f7' : '#5a607a' },
+              ]}>
+                {bookmarkedQs[`question:${question.id}`] ? '★' : '☆'}
+              </Text>
+              <Text style={{
+                color: bookmarkedQs[`question:${question.id}`] ? '#4fc3f7' : '#8892b0',
+                fontSize: 13,
+                marginLeft: 6,
+              }}>
+                {bookmarkedQs[`question:${question.id}`] ? 'Bookmarked' : 'Bookmark for later'}
+              </Text>
+            </TouchableOpacity>
 
             <TouchableOpacity style={styles.nextButton} onPress={handleNext} activeOpacity={0.8}>
               <Text style={styles.nextButtonText}>
@@ -423,6 +463,14 @@ const styles = StyleSheet.create({
     color: '#aaa',
     fontSize: 13,
     lineHeight: 18,
+  },
+  bookmarkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  bookmarkStar: {
+    fontSize: 18,
   },
   nextButton: {
     backgroundColor: '#4fc3f7',

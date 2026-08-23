@@ -1,5 +1,6 @@
 import * as SQLite from 'expo-sqlite';
 import { Question, QuestionAttempt, StudySession, CodeSection, TopicStats } from './types';
+import { uid } from './uid';
 
 let db: SQLite.SQLiteDatabase;
 
@@ -75,10 +76,23 @@ async function initializeDatabase(database: SQLite.SQLiteDatabase): Promise<void
       keywords TEXT NOT NULL DEFAULT '[]'
     );
 
+    CREATE TABLE IF NOT EXISTS bookmarks (
+      id TEXT PRIMARY KEY,
+      kind TEXT NOT NULL,
+      question_id TEXT NOT NULL DEFAULT '',
+      code_section_id TEXT NOT NULL DEFAULT '',
+      note TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(kind, question_id, code_section_id)
+      -- refs are NOT-NULL with '' for the unused column (SQLite uniques treat
+      -- NULLs as distinct), so integrity is enforced app-side, not by FKs
+    );
+
     CREATE INDEX IF NOT EXISTS idx_questions_topic ON questions(topic);
     CREATE INDEX IF NOT EXISTS idx_attempts_question ON question_attempts(question_id);
     CREATE INDEX IF NOT EXISTS idx_attempts_session ON question_attempts(session_id);
     CREATE INDEX IF NOT EXISTS idx_progress_next_review ON user_progress(next_review);
+    CREATE INDEX IF NOT EXISTS idx_bookmarks_kind ON bookmarks(kind);
   `);
 }
 
@@ -368,4 +382,87 @@ export async function toggleBookmark(questionId: string): Promise<boolean> {
     questionId, newValue, newValue
   );
   return newValue === 1;
+}
+
+// --- New Bookmark Table (bookmarks: kind + ref + editable note) ---
+
+export type BookmarkKind = 'question' | 'code_section';
+
+export interface BookmarkRow {
+  id: string;
+  kind: BookmarkKind;
+  question_id: string;
+  code_section_id: string;
+  note: string;
+  created_at: string;
+}
+
+function bookmarkKey(kind: BookmarkKind, questionId: string, codeSectionId: string): string {
+  return `${kind}:${kind === 'question' ? questionId : codeSectionId}`;
+}
+
+/**
+ * Toggle a bookmark for a question or code section.
+ * Returns true if the ref is now bookmarked.
+ */
+export async function toggleBookmarkRef(
+  kind: BookmarkKind,
+  questionId: string = '',
+  codeSectionId: string = ''
+): Promise<boolean> {
+  const db = await getDatabase();
+  const qid = kind === 'question' ? questionId : '';
+  const cid = kind === 'code_section' ? codeSectionId : '';
+
+  const existing = await db.getFirstAsync<{ id: string }>(
+    'SELECT id FROM bookmarks WHERE kind = ? AND question_id = ? AND code_section_id = ?',
+    kind, qid, cid
+  );
+  if (existing) {
+    await db.runAsync('DELETE FROM bookmarks WHERE id = ?', existing.id);
+    return false;
+  }
+  await db.runAsync(
+    'INSERT INTO bookmarks (id, kind, question_id, code_section_id) VALUES (?, ?, ?, ?)',
+    uid(), kind, qid, cid
+  );
+  return true;
+}
+
+/** Map of bookmarkKey -> row, for fast lookups in a screen. */
+export async function getBookmarkMap(): Promise<Map<string, BookmarkRow>> {
+  const db = await getDatabase();
+  const rows = await db.getAllAsync<BookmarkRow>(
+    'SELECT id, kind, question_id, code_section_id, note, created_at FROM bookmarks ORDER BY created_at DESC'
+  );
+  const map = new Map<string, BookmarkRow>();
+  for (const r of rows) map.set(bookmarkKey(r.kind, r.question_id, r.code_section_id), r);
+  return map;
+}
+
+/** All bookmarks, for the P3 Bookmarks screen (questions + sections, note included). */
+export async function getBookmarks(): Promise<BookmarkRow[]> {
+  const db = await getDatabase();
+  return db.getAllAsync<BookmarkRow>(
+    'SELECT id, kind, question_id, code_section_id, note, created_at FROM bookmarks ORDER BY created_at DESC'
+  );
+}
+
+/** Save an editable note on an existing bookmark (P3 Bookmarks screen). */
+export async function setBookmarkNote(bookmarkId: string, note: string): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync('UPDATE bookmarks SET note = ? WHERE id = ?', note, bookmarkId);
+}
+
+/** Question counts per code_section, for the Code Reference screen (one query). */
+export async function getQuestionCountsByCodeSection(): Promise<Map<string, number>> {
+  const db = await getDatabase();
+  const rows = await db.getAllAsync<{ code_section: string; n: number }>(
+    `SELECT code_section, COUNT(*) as n
+     FROM questions WHERE verified = 1 AND code_section != ''
+     GROUP BY code_section`
+  );
+  const map = new Map<string, number>();
+  for (const r of rows) map.set(r.code_section, r.n);
+  return map;
 }

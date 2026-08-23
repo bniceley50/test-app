@@ -68,11 +68,15 @@ export default function HomeScreen() {
           </Text>
         </TouchableOpacity>
 
-        <View style={[styles.actionCard, styles.actionCardDisabled]}>
+        <TouchableOpacity
+          style={styles.actionCard}
+          onPress={() => router.push('/mock')}
+          activeOpacity={0.8}
+        >
           <Text style={styles.actionIcon}>📝</Text>
           <Text style={styles.actionTitle}>Mock Exam</Text>
-          <Text style={styles.actionSub}>Coming soon</Text>
-        </View>
+          <Text style={styles.actionSub}>25 or 50 Q · timed · 80% pass</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Progress Bar */}
