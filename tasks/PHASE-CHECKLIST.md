@@ -17,7 +17,7 @@ Rule: only `verified:1` questions ever enter a study mode (drill / missed / mock
 
 ## Phase 0 — Baseline & hygiene
 - [x] `npm install` clean; no broken peers. *(verified 2026-08-18)*
-- [x] App boots on **web** (Metro web export green, incl. wa-sqlite .wasm asset) AND in **Expo Go**. *(web: verified via `npx expo export --platform web`; Expo Go + real devices: owner check under P1)*
+- [x] App boots on **web** (Metro web export green, incl. wa-sqlite .wasm asset) AND in **Expo Go**. *(web: full E2E click-through in real Chrome now — `node tools/e2e-chrome.cjs`, evidence in `tasks/evidence/`; Expo Go + real devices: owner check under P1)*
 - [x] Unused deps removed (uuid, @types/uuid, nativewind, tailwindcss, reanimated, worklets); `package.json` + `package-lock.json` in sync; app still boots. *(lockfile pruned & verified; web + ios + android exports all green after dep strip)*
 - [x] Confirmed flows at code level: Home → Drill (10 Q) → Results, and Home → Missed → Results. *(drill.tsx / missed.tsx / results.tsx / store.ts / database.ts reviewed; all 41 seeded Q are mcq, so flows safe end-to-end; live click-through happens on owner's devices in P1)*
 - [x] This checklist exists and is kept current.
@@ -46,6 +46,7 @@ Rule: only `verified:1` questions ever enter a study mode (drill / missed / mock
 
 ## Phase 4 — Quality & ship
 - [x] Unified loading / empty / error states across all screens. *(2026-08-18: Home stats error card; Drill + Missed error + "Try again"; Topics/Code/Bookmarks have error + empty + refresh; Mock has its own load error + setup; all data reads are local SQLite — no network anywhere.)*
+- [x] Web end-to-end verification (all screens + a full Mock Exam cycle). *(2026-08-23: `node tools/e2e-chrome.cjs` — real Chrome over CDP, fresh profile (exercises first-boot seeding), pointer-event taps; 10/10 gates pass: home render + 41-Q seed, mock setup → live exam → answer/advance with no feedback → submit → results with per-topic breakdown, topics grid, code list + section expand, bookmarks empty state, missed via home card. Screenshots: tasks/evidence/. E2E caught a real web bug: RN-web `Alert.alert` is a no-op, so web mock submit now goes direct (`Platform.OS === 'web'`) — see lessons #10/#11.)*
 - [x] Home stats + streak consistent and correct. *(SQL-driven: sessions/day streak + accuracy average; unchanged by P3 — tsc + bundle green.)*
 - [ ] Offline re-test passes after P3 changes (spaced-rep + bookmarks both read SQLite). *(owner — same script as before, now also: bookmark something, add a note, run a mock; airplane relaunch should keep everything.)*
 - [ ] Full flow re-verified on BOTH iOS and Android. *(owner — new surface since the last phone pass: Mock, Topics, Code, Bookmarks, fill-blank UI.)*

@@ -47,6 +47,16 @@
 - **Rule**: After adding/removing routes, always run a full `npx tsc --noEmit`; when a template helper needs a plain-string href, keep the `href: string` API and cast once at the `<Link>` boundary instead of fighting the union.
 - **Date**: 2026-08-18
 
+### 10. [web] RN-web Alert.alert is a silent no-op — gate it per platform
+- **Pattern**: Mock Exam's "Submit exam" on web did nothing: `react-native-web` implements `Alert.alert` as an empty static method, so tapping the button on the last question silently swallowed the submit (the exam phase persisted indefinitely). E2E (tools/e2e-chrome.cjs) proved it only after the app reached "25/25, Submit exam" and never left.
+- **Rule**: Never rely on `Alert` for web. In `mock.tsx` the handler is now `if (Platform.OS === 'web') { submitExam(false); return; }` before the native `Alert.alert(...)`. Note the trap I nearly shipped: referencing `Platform` without importing it throws only at tap-time (`ReferenceError` inside `onPress`), invisible until a real tap.
+- **Date**: 2026-08-23
+
+### 11. [testing] Headless Chrome (--dump-dom) is a unreliable web-hang detector — use real Chrome over CDP
+- **Pattern**: The web app "failed to boot" in every headless probe: virtual-time dumps and real-time dumps both showed an empty `#root`, yet a real Chrome window rendered Home in seconds. Root cause of the false positives: (a) `--virtual-time-budget` fast-forwards timers while OPFS File-System-Access promises don't resolve in time, and (b) a virtual-time page dump can outlive the React commit. The worker, wasm asset, and OPFS were all fine (proven with isolated probe pages: fetch 200, wasm instantiate OK, OPFS create OK in real Chrome).
+- **Rule**: Verify web with `tools/e2e-chrome.cjs` — real Chrome (non-headless) driven over CDP (`--remote-debugging-port=9223`), fresh `--user-data-dir` per run (empty OPFS → exercises first-boot seeding), pointer-event taps (RN-web hit-tests `pointerup` against the touchable), and a `waitFor(predicate, timeout)` loop on `document.body.innerText`. Screenshots land in `tasks/evidence/`. Reserve headless `--dump-dom` for "does the server answer 200" checks, not "did React mount".
+- **Date**: 2026-08-23
+
 ## Format
 Each lesson should include:
 - **Category tag**: [auth], [db], [testing], [ui], [infra], [content], [expo], [navigation]

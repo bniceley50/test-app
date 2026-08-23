@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, TextInput } from 'react-native';
+import { Alert, Platform, View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { answerMatches } from '@/lib/normalize';
 import {
@@ -170,7 +170,13 @@ export default function MockExamScreen() {
     }
   }
 
+  // Native renders the RN Alert dialog. On web, RN-web's Alert is a no-op
+  // (verified in tools/e2e-chrome.cjs), so submit directly to stay safe.
   function requestSubmit() {
+    if (Platform.OS === 'web') {
+      submitExam(false);
+      return;
+    }
     Alert.alert(
       'Submit exam?',
       'Unanswered questions will count as incorrect. Answers will be shown after submission.',
