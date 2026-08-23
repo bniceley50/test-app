@@ -38,10 +38,10 @@ Rule: only `verified:1` questions ever enter a study mode (drill / missed / mock
 - [x] Home nav links wired to all of the above. *(Mock card enabled on Home; Topics/Code already in tab bar. Drill answer card also got a bookmark star — P3 item pulled forward.)*
 
 ## Phase 3 — Fill the deliberate gaps
-- [ ] Fill-in-the-blank UI renders + grades (normalized trim/case-insensitive match); only verified enter the pool.
-- [ ] Spaced-rep "due" queue: `next_review <= now` + lower-confidence-first blends to top of Drill + Mock decks.
-- [x] Bookmarks table (`id, kind, question_id, code_section_id, note, created_at`). *(created 2026-08-18 in P2 — `kind` discriminates question vs code-section refs; `note` pre-wired for the Bookmarks screen).*
-- [ ] Bookmarks screen: list bookmarked questions + code sections; editable notes; tap-through.
+- [x] Fill-in-the-blank UI renders + grades (normalized trim/case-insensitive match); only verified enter the pool. *(built 2026-08-18: `lib/normalize.ts` (trim, case-insensitive, whitespace-collapse, numeric fallback "1/2"≡"0.5"); drill + missed render a fill-blank input with "Check answer" and show your/expected answer after; mock treats it as a lock-in under exam conditions; pool unchanged (verified-only, all 41 seeded are mcq today — UI ready for future content).)*
+- [x] Spaced-rep "due" queue: `next_review <= now` + lower-confidence-first blends to top of Drill + Mock decks. *(built 2026-08-18: `getDeckWithDue(count, topic?)` in lib/database.ts — due items (most overdue, then lowest confidence) lead the deck, filled with random verified non-due; Drill (all + topic) and Mock both consume it. Driven by the existing write-only `next_review` column from `recordAttempt`.)*
+- [x] Bookmarks table (`id, kind, question_id, code_section_id, note, created_at`). *(created 2026-08-18 in P2 — `kind` discriminates question vs code-section refs; `note` pre-wired for the Bookmarks screen.)*
+- [x] Bookmarks screen: list bookmarked questions + code sections; editable notes; tap-through. *(built 2026-08-18: 4th tab — lists both kinds, expand for full question/section detail, editable note saved on blur, "Drill this topic →" / "Open Code Reference →" tap-through, remove, empty + error states.)*
 - [x] Bookmark buttons on drill answer card, code-section detail, and question view. *(drill answer card star + Code Reference per-section and per-question stars, all → `bookmarks` table, 2026-08-18)*
 
 ## Phase 4 — Quality & ship

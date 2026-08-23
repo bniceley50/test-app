@@ -143,6 +143,42 @@ export async function getDrillQuestions(count: number = 10): Promise<Question[]>
   return rows.map(parseQuestionRow);
 }
 
+/**
+ * Spaced-rep blended deck (locked decision: due items go to the TOP of every
+ * deck, not a separate entry). Due = `next_review <= now`; ordered most
+ * overdue first, then lowest confidence (times_correct, accuracy). Filled to
+ * `count` with random verified questions excluding the due ones.
+ */
+export async function getDeckWithDue(count: number, topic: string | null = null): Promise<Question[]> {
+  const db = await getDatabase();
+  const topicClause = topic ? 'AND q.topic = ?' : '';
+  const dueParams: (string | number)[] = topic ? [topic, count] : [count];
+  const dueRows = await db.getAllAsync<any>(
+    `SELECT q.* FROM questions q
+     INNER JOIN user_progress p ON q.id = p.question_id
+     WHERE q.verified = 1 ${topicClause} AND p.next_review <= datetime('now')
+     ORDER BY p.next_review ASC, p.times_correct ASC, p.accuracy ASC
+     LIMIT ?`,
+    ...dueParams
+  );
+  const due = dueRows.map(parseQuestionRow);
+
+  const restExcl = due.map(q => q.id);
+  const notIn = restExcl.length ? `AND id NOT IN (${restExcl.map(() => '?').join(',')})` : '';
+  const restParams: (string | number)[] = [
+    ...restExcl,
+    ...(topic ? [topic] : []),
+    Math.max(0, count - due.length),
+  ];
+  const restRows = await db.getAllAsync<any>(
+    `SELECT * FROM questions
+     WHERE verified = 1 ${notIn} ${topic ? 'AND topic = ?' : ''}
+     ORDER BY RANDOM() LIMIT ?`,
+    ...restParams
+  );
+  return [...due, ...restRows.map(parseQuestionRow)];
+}
+
 export async function getTopicQuestions(topic: string, count: number = 10): Promise<Question[]> {
   const db = await getDatabase();
   const rows = await db.getAllAsync<any>(
@@ -364,6 +400,18 @@ export async function getQuestionsForCodeSection(sectionRef: string): Promise<Qu
     `SELECT * FROM questions WHERE code_section = ?`, sectionRef
   );
   return rows.map(parseQuestionRow);
+}
+
+export async function getQuestionById(id: string): Promise<Question | null> {
+  const db = await getDatabase();
+  const row = await db.getFirstAsync<any>('SELECT * FROM questions WHERE id = ?', id);
+  return row ? parseQuestionRow(row) : null;
+}
+
+export async function getCodeSectionById(id: string): Promise<CodeSection | null> {
+  const db = await getDatabase();
+  const row = await db.getFirstAsync<any>('SELECT * FROM code_sections WHERE id = ?', id);
+  return row ? parseCodeSectionRow(row) : null;
 }
 
 // --- Bookmark Queries ---

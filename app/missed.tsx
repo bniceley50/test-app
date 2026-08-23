@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAppStore } from '@/lib/store';
 import { getActiveMissedQuestions, recordAttempt, clearMissedQuestion, createSession, completeSession } from '@/lib/database';
+import { answerMatches } from '@/lib/normalize';
 import { uid } from '@/lib/uid';
 
 export default function MissedScreen() {
@@ -11,10 +12,14 @@ export default function MissedScreen() {
   const [questionStartTime, setQuestionStartTime] = useState(Date.now());
   const [loading, setLoading] = useState(true);
   const [empty, setEmpty] = useState(false);
+  const [fillValue, setFillValue] = useState('');
 
+  useEffect(() => { loadQuestions(); }, []);
+
+  // Reset the fill-in-the-blank input whenever the question changes.
   useEffect(() => {
-    loadQuestions();
-  }, []);
+    setFillValue('');
+  }, [drill?.currentIndex, drill?.sessionId]);
 
   async function loadQuestions() {
     try {
@@ -49,7 +54,10 @@ export default function MissedScreen() {
   async function handleAnswer(selected: string) {
     if (!drill || showExplanation) return;
     const question = drill.questions[drill.currentIndex];
-    const correct = selected === question.answer;
+    // Fill-in-the-blank uses normalized matching ("1/2 in" ≡ "0.5 inch").
+    const correct = question.type === 'fill_blank'
+      ? answerMatches(question.answer, selected)
+      : selected === question.answer;
     const timeMs = Date.now() - questionStartTime;
 
     answerQuestion(selected, correct, timeMs);
@@ -157,7 +165,32 @@ export default function MissedScreen() {
         {/* Question */}
         <Text style={styles.questionText}>{question.prompt}</Text>
 
-        {/* Choices */}
+        {/* Choices (MCQ) or fill-in-the-blank input */}
+        {question.type === 'fill_blank' ? (
+          <View>
+            <TextInput
+              style={styles.fillInput}
+              placeholder="Type your answer…"
+              placeholderTextColor="#5a607a"
+              value={fillValue}
+              onChangeText={setFillValue}
+              autoCapitalize="words"
+              multiline
+              textAlignVertical="center"
+            />
+            <TouchableOpacity
+              style={styles.nextButton}
+              onPress={() => {
+                const v = fillValue.trim();
+                if (v) void handleAnswer(v);
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.nextButtonText}>Check answer</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View>
         {question.choices.map((choice, index) => {
           const letter = String.fromCharCode(65 + index);
           const isSelected = answered?.selected === choice;
@@ -191,6 +224,8 @@ export default function MissedScreen() {
             </TouchableOpacity>
           );
         })}
+          </View>
+        )}
 
         {/* Explanation */}
         {showExplanation && (
@@ -198,6 +233,21 @@ export default function MissedScreen() {
             <Text style={[styles.resultBanner, answered?.correct ? styles.correctBanner : styles.wrongBanner]}>
               {answered?.correct ? 'Got It!' : 'Still Wrong — Review Below'}
             </Text>
+
+            {question.type === 'fill_blank' && (
+              <View>
+                <Text style={styles.fillResultLabel}>Your answer</Text>
+                <Text style={[styles.fillResultText, { color: answered?.correct ? '#4caf50' : '#f44336' }]}>
+                  {answered?.selected || '(blank)'}
+                </Text>
+                {!answered?.correct && (
+                  <>
+                    <Text style={styles.fillResultLabel}>Correct answer</Text>
+                    <Text style={[styles.fillResultText, { color: '#4caf50' }]}>{question.answer}</Text>
+                  </>
+                )}
+              </View>
+            )}
 
             <Text style={styles.explanationTitle}>Why?</Text>
             <Text style={styles.explanationText}>{question.explanation}</Text>
@@ -469,6 +519,32 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  fillInput: {
+    backgroundColor: '#1a1a2e',
+    borderWidth: 1,
+    borderColor: '#2a2a4e',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: '#fff',
+    fontSize: 16,
+    minHeight: 56,
+    marginBottom: 12,
+  },
+  fillResultLabel: {
+    color: '#8892b0',
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+    marginTop: 4,
+  },
+  fillResultText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 6,
   },
   nextButton: {
     backgroundColor: '#4fc3f7',

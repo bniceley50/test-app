@@ -1,13 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Alert, View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
+import { answerMatches } from '@/lib/normalize';
 import {
-  getMockExamQuestions,
+  getDeckWithDue,
   recordAttempt,
   createSession,
   completeSession,
 } from '@/lib/database';
-import { Question, TopicStats } from '@/lib/types';
+import { Question } from '@/lib/types';
 import { uid } from '@/lib/uid';
 
 // Locked decisions: 25 Q = 75 min, 50 Q = 150 min (3 min/question pace).
@@ -25,6 +26,7 @@ type Phase = 'setup' | 'exam' | 'results';
 interface AnswerRecord {
   selected: string | null;
   timeMs: number;
+  correct: boolean;
 }
 
 interface ResultRow {
@@ -46,6 +48,7 @@ export default function MockExamScreen() {
   const [remainingMs, setRemainingMs] = useState(0);
   const [autoSubmitted, setAutoSubmitted] = useState(false);
   const [timeTakenMs, setTimeTakenMs] = useState(0);
+  const [fillValue, setFillValue] = useState('');
 
   const endTsRef = useRef(0);
   const sessionIdRef = useRef('');
@@ -55,6 +58,11 @@ export default function MockExamScreen() {
   const lastModeRef = useRef<(typeof MODES)[number] | null>(null);
 
   const question = questions[currentIndex];
+
+  // Reset the fill-in-the-blank input whenever the question changes.
+  useEffect(() => {
+    setFillValue('');
+  }, [currentIndex]);
 
   // --- Timer ---
   useEffect(() => {
@@ -77,7 +85,8 @@ export default function MockExamScreen() {
     setLoadError(null);
     try {
       // 3 min/q pace, capped by the mode's full time (bank may be smaller now).
-      const qs = await getMockExamQuestions(mode.count);
+      // Spaced-rep: overdue questions blend to the TOP of the mock deck too.
+      const qs = await getDeckWithDue(mode.count, null);
       if (qs.length === 0) {
         setLoadError('No verified questions are available yet.');
         return;
@@ -119,9 +128,9 @@ export default function MockExamScreen() {
   }
 
   // --- Answer (NO feedback — locked: answers are hidden until submit) ---
-  function choose(choice: string) {
-    if (!question || phase !== 'exam') return;
-    recordAttemptNow(question, choice);
+  function choose(selected: string) {
+    if (!question || phase !== 'exam' || !selected) return;
+    recordAttemptNow(question, selected);
     advance();
   }
 
@@ -132,12 +141,16 @@ export default function MockExamScreen() {
 
   function recordAttemptNow(q: Question, selected: string) {
     const timeMs = Date.now() - qStartRef.current;
-    setAnswers(prev => ({ ...prev, [q.id]: { selected, timeMs } }));
+    // Fill-in-the-blank uses normalized matching; MCQ is exact.
+    const correct = q.type === 'fill_blank'
+      ? answerMatches(q.answer, selected)
+      : selected === q.answer;
+    setAnswers(prev => ({ ...prev, [q.id]: { selected, timeMs, correct } }));
     void recordAttempt({
       id: uid(),
       question_id: q.id,
       selected_answer: selected,
-      is_correct: selected === q.answer,
+      is_correct: correct,
       response_time_ms: timeMs,
       session_id: sessionIdRef.current,
       attempted_at: new Date().toISOString(),
@@ -187,7 +200,7 @@ export default function MockExamScreen() {
       }
     }
 
-    const correctCount = questions.filter(q => answers[q.id]?.selected === q.answer).length;
+    const correctCount = questions.filter(q => answers[q.id]?.correct === true).length;
     try {
       await completeSession(sessionIdRef.current, correctCount, timeTaken);
     } catch (e) {
@@ -270,23 +283,54 @@ export default function MockExamScreen() {
           </View>
           <Text style={styles.examPrompt}>{question.prompt}</Text>
 
+          {question.type === 'fill_blank' ? (
+            <View>
+              <TextInput
+                style={styles.fillInput}
+                placeholder="Type your answer…"
+                placeholderTextColor="#5a607a"
+                value={fillValue}
+                onChangeText={setFillValue}
+                autoCapitalize="words"
+                multiline
+                textAlignVertical="center"
+                editable={!answers[question.id]}
+              />
+              <TouchableOpacity
+                style={styles.mockChoice}
+                onPress={() => {
+                  const v = fillValue.trim();
+                  if (v) choose(v);
+                }}
+                disabled={!!answers[question.id]}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.mockChoiceText}>Lock in answer</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View>
           {question.choices.map((choice, i) => {
             const letter = String.fromCharCode(65 + i);
             const picked = answers[question.id]?.selected === choice;
+            const already = !!answers[question.id];
             return (
               <TouchableOpacity
                 key={i}
-                style={[styles.mockChoice, picked && styles.mockChoicePicked]}
+                style={[styles.mockChoice, picked && styles.mockChoicePicked, already && styles.mockChoiceLocked]}
                 onPress={() => choose(choice)}
+                disabled={already}
                 activeOpacity={0.7}
               >
-                <View style={styles.mockLetter}>
+                <View style={[styles.mockLetter, picked && styles.mockLetterPicked]}>
                   <Text style={styles.mockLetterText}>{letter}</Text>
                 </View>
                 <Text style={styles.mockChoiceText}>{choice}</Text>
               </TouchableOpacity>
             );
           })}
+            </View>
+          )}
 
           {/* Navigation */}
           <View style={styles.examNavRow}>
@@ -296,16 +340,6 @@ export default function MockExamScreen() {
             {currentIndex === questions.length - 1 && (
               <TouchableOpacity style={styles.submitBtn} onPress={requestSubmit} activeOpacity={0.85}>
                 <Text style={styles.submitText}>Submit exam</Text>
-              </TouchableOpacity>
-            )}
-            {currentIndex > 0 && (
-              <TouchableOpacity
-                style={styles.backBtn}
-                onPress={() => { setCurrentIndex(i => i - 1); qStartRef.current = Date.now(); }}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.backText}>◀ prev</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -326,7 +360,7 @@ export default function MockExamScreen() {
 
   // --- Results phase ---
   const total = questions.length;
-  const correctCount = questions.filter(q => answers[q.id]?.selected === q.answer).length;
+  const correctCount = questions.filter(q => answers[q.id]?.correct === true).length;
   const pct = total > 0 ? Math.round((correctCount / total) * 100) : 0;
   const passed = pct >= PASS_LINE;
 
@@ -335,7 +369,7 @@ export default function MockExamScreen() {
   for (const q of questions) {
     const row = byTopic.get(q.topic) || { topic: q.topic, correct: 0, total: 0 };
     row.total += 1;
-    if (answers[q.id]?.selected === q.answer) row.correct += 1;
+    if (answers[q.id]?.correct === true) row.correct += 1;
     byTopic.set(q.topic, row);
   }
   const rows: ResultRow[] = Array.from(byTopic.values()).sort((a, b) =>
@@ -389,11 +423,11 @@ export default function MockExamScreen() {
 
         {/* Missed review */}
         <Text style={styles.resultsTitle}>Review missed</Text>
-        {questions.filter(q => answers[q.id]?.selected !== q.answer).length === 0 ? (
+        {questions.filter(q => !(answers[q.id]?.correct === true)).length === 0 ? (
           <Text style={styles.resultsNone}>None — clean sheet.</Text>
         ) : (
           questions
-            .filter(q => answers[q.id]?.selected !== q.answer)
+            .filter(q => !(answers[q.id]?.correct === true))
             .map(q => (
               <View key={q.id} style={styles.reviewCard}>
                 <Text style={styles.reviewPrompt}>{q.prompt}</Text>
@@ -492,6 +526,20 @@ const styles = StyleSheet.create({
   },
   mockLetterText: { color: '#fff', fontSize: 14, fontWeight: '600' },
   mockChoiceText: { color: '#ddd', fontSize: 15, flex: 1 },
+  mockLetterPicked: { backgroundColor: '#4fc3f7' },
+  mockChoiceLocked: { opacity: 0.75 },
+  fillInput: {
+    backgroundColor: '#1a1a2e',
+    borderWidth: 1,
+    borderColor: '#2a2a4e',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: '#fff',
+    fontSize: 16,
+    minHeight: 56,
+    marginBottom: 10,
+  },
   examNavRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -508,8 +556,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   submitText: { color: '#1a1a2e', fontSize: 15, fontWeight: 'bold' },
-  backBtn: { paddingHorizontal: 4 },
-  backText: { color: '#6c7293', fontSize: 13 },
 
   resultsContent: { padding: 16, paddingBottom: 40 },
   autoBanner: {
