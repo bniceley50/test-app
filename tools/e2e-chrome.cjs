@@ -297,6 +297,15 @@ const HELPER_SRC = `(function(){
   const topics = await waitFor(t => t.includes('Topic Breakdown'), 40000, 'topics');
   step('topics: grid renders with per-topic percentages', topics.includes('Topic Breakdown') && /%/.test(topics));
 
+  // 9b. Topics → tap a topic → topic-FILTERED drill deck (topic param flows through)
+  //     The topic slug is law_licensing; the card Text renders "Law Licensing"
+  //     (pretty/title case) and the drill badge uppercases it to "LAW LICENSING".
+  const topicsTapRes = await tap(`window.__tap('Licensing', 1)`);
+  const topicDrill = await waitFor(t => /LAW LICENSING/.test(t) && /\b1 \/ \d+\b/.test(t), 30000, 'topic drill');
+  step('topics: tapping a topic opens a topic-filtered drill deck (badge + 1/N progress)',
+    /LAW LICENSING/.test(topicDrill) && /\b1 \/ \d+\b/.test(topicDrill));
+  console.log('  topic drill: ' + ((topicDrill.match(/\b1 \/ \d+/) || ['no-progress'])[0]) + ' | tap: ' + topicsTapRes);
+
   // 10. Code reference: list + expand 090
   await nav('/code');
   const codeList = await waitFor(t => t.includes('815KAR20:090'), 40000, 'code list');
@@ -311,6 +320,24 @@ const HELPER_SRC = `(function(){
     if (!codeExpanded) console.log(`  code tap attempt ${attempt}: ${tapRes}`);
   }
   step('code: section expands (linked questions / empty-linked state appears)', codeExpanded);
+
+  // 10b. Code search: typing filters the list (250ms debounce in code.tsx).
+  //     "storm" matches only section 20:130 (title/keyword); 090 + 070 must drop out.
+  //     RN-web controlled TextInput needs CDP Input.insertText (lesson 12).
+  await evRaw(HELPER_SRC);
+  await tap(`window.__focusInput('Search section')`);
+  await sleep(600);
+  const codeBefore = await bodyText();
+  const hadAll = codeBefore.includes('815KAR20:090') && codeBefore.includes('815KAR20:070');
+  await cdpSend('Input.insertText', { text: 'storm' });
+  await sleep(1500); // debounce + reload
+  const codeAfter = await bodyText();
+  const afterShows043 = codeAfter.includes('815KAR20:130');
+  const afterDropped090 = !codeAfter.includes('815KAR20:090');
+  const afterDropped070 = !codeAfter.includes('815KAR20:070');
+  step('code: search filters list to matching sections (storm → only 20:130, others drop out)',
+    hadAll && afterShows043 && afterDropped090 && afterDropped070);
+  console.log('  code search: hadAllList=' + hadAll + ' | after "storm": 043-shown=' + afterShows043 + ', 090-gone=' + afterDropped090 + ', 070-gone=' + afterDropped070);
 
   console.log('\nE2E result: ' + (failures.length ? failures.length + ' FAILURE(S): ' + failures.join(' | ') : 'ALL STEPS PASSED'));
   console.log('profile kept at ' + profile);
