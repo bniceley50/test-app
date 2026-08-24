@@ -78,25 +78,41 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
   }
   log('boot seam: ' + bootSeam);
 
-  // THE PROBE: close via seam (what the pagehide handler does)
+  // Close using the APP-level closeDatabase (same path as pagehide), then
+  // re-boot in the SAME document (tab-switch path) and verify data survives
+  // the VFS re-acquisition.
   const close = await send('Runtime.evaluate', {
-    expression: 'globalThis.__plumberDb ? globalThis.__plumberDb.closeAsync().then(function(){return "closed-ok";},function(e){return "close-err:"+(e&&e.message);}) : "no-seam"',
+    expression: 'globalThis.__plumberClose ? globalThis.__plumberClose().then(function(){return "closed-ok";},function(e){return "close-err:"+(e&&e.message);}) : "no-close-ctx"',
     awaitPromise: true,
   });
-  log('close via seam: ' + JSON.stringify(close.result ? close.result.value : close));
+  log('close via app ctx: ' + JSON.stringify(close.result ? close.result.value : close));
 
-  await sleep(4000);
+  await sleep(2500);
 
-  // after close, a query should fail with worker-level "Database not found" (proof close reached worker)
+  // after close, a query on the old seam handle fails "Database not found"
+  // (the worker released the handle it was tracking).
   const after = await send('Runtime.evaluate', {
     expression: 'globalThis.__plumberDb ? globalThis.__plumberDb.getAllAsync("SELECT 1 LIMIT 1").then(function(){return "still-works?";},function(e){return "seam-err:"+(e&&e.message);}) : "no-seam"',
     awaitPromise: true,
   });
-  log('post-close seam query: ' + JSON.stringify(after.result ? after.result.value : after));
+  log('post-close old-handle query: ' + JSON.stringify(after.result ? after.result.value : after));
 
-  const markers = consoleMsgs.filter(l => l.includes('plumber-sqlite') || l.includes('Database ready') || l.includes('init'));
+  // RE-BOOT the same document via the app boot path. This is the tab-switch
+  // case: the worker VFS was closed with #directoryHandle set + maps cleared,
+  // so the next open must re-create the VFS and re-acquire all six handles.
+  const reboot = await send('Runtime.evaluate', {
+    expression: 'Promise.resolve().then(function(){ if(!globalThis.__plumberBoot) return Promise.resolve("no-boot-ctx"); return globalThis.__plumberBoot().then(function(d){ return d.getAllAsync("SELECT (SELECT COUNT(*) FROM questions) q,(SELECT COUNT(*) FROM code_sections) cs FROM (SELECT 1) LIMIT 1").then(function(r){return "rebooted q="+r[0].q+" cs="+r[0].cs;},function(e){return "reboot-query-err:"+(e&&e.message);}); },function(e){return "reboot-err:"+(e&&e.message);}); })',
+    awaitPromise: true,
+  });
+  log('same-document re-boot: ' + JSON.stringify(reboot.result ? reboot.result.value : reboot));
+
+  await sleep(1500);
+
+  const markers = consoleMsgs.filter(l => l.includes('plumber-sqlite') || l.includes('Database ready') || l.includes('init') || l.includes('cannot create file'));
   log('RELEVANT CONSOLE (' + markers.length + '):');
   markers.forEach(l => log('  | ' + l));
+  log('FULL CONSOLE (' + consoleMsgs.length + '):');
+  consoleMsgs.forEach((l, i) => log('  [' + i + '] ' + l));
   clearTimeout(hardTimer);
   try { proc.kill('SIGTERM'); } catch {}
   try { fs.rmSync(profile, { recursive: true, force: true }); } catch {}

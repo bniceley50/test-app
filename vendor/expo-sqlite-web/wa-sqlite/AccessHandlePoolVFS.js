@@ -211,8 +211,20 @@ export class AccessHandlePoolVFS extends FacadeVFS {
     return VFS.SQLITE_OK;
   }
 
+  // Releases every pool file's sync access handle and, unlike a passive
+  // teardown, RE-ARMS the VFS for re-creation: #directoryHandle is cleared
+  // so the NEXT isReady() re-runs #acquireAccessHandles and re-acquires all
+  // six pool files from disk (data intact — only the sync handles were
+  // closed; the OPFS files themselves remained). The worker keeps this VFS
+  // instance registered as a singleton for its whole life, so releasing
+  // without re-arming would leave a drained singleton (capacity 0, #get
+  // AssociatedPath maps empty) and the next openDatabase would fail with
+  // 'cannot create file' after a same-document close/re-open (tab switch).
+  // (Original upstream close() released the handles but left #directoryHandle
+  // set, so isReady skipped re-acquisition.)
   async close() {
     await this.#releaseAccessHandles();
+    this.#directoryHandle = undefined;
   }
 
   async isReady() {
@@ -331,10 +343,15 @@ export class AccessHandlePoolVFS extends FacadeVFS {
     );
   }
 
-  #releaseAccessHandles() {
-    for (const accessHandle of this.#mapAccessHandleToName.keys()) {
-      accessHandle.close();
-    }
+  async #releaseAccessHandles() {
+    // await every close() — closing a FileSystemSyncAccessHandle is
+    // asynchronous, and a caller that immediately re-acquires the pool
+    // (the worker re-boot path) would otherwise race an in-flight close.
+    await Promise.all(
+      Array.from(this.#mapAccessHandleToName.keys()).map(async (accessHandle) => {
+        await accessHandle.close();
+      })
+    );
     this.#mapAccessHandleToName.clear();
     this.#mapPathToAccessHandle.clear();
     this.#availableAccessHandles.clear();

@@ -50,6 +50,11 @@ function bootDatabase(): Promise<SQLite.SQLiteDatabase> {
             // even a failing one, never clobbers a still-live handle.
             const scope = globalThis as Record<string, unknown>;
             if (!scope['__plumberDb']) scope['__plumberDb'] = db;
+            // Same-document re-acquisition probe for the web close patch:
+            // the page's own close+reboot (tab switch → closeDatabase() →
+            // any screen's getDatabase()) must be reproducible in CDP.
+            scope['__plumberBoot'] = bootDatabase;
+            scope['__plumberClose'] = closeDatabase;
             await initializeDatabase(db);
           }
           resolved = db;
@@ -86,6 +91,16 @@ function bootDatabase(): Promise<SQLite.SQLiteDatabase> {
 export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
   return bootDatabase();
 }
+
+/**
+ * Exposed for web diagnostics via the `__plumberBoot` / `__plumberClose`
+ * globalThis seam set in bootDatabase: on web, close + re-boot in the SAME
+ * document exercises the worker patch's VFS re-acquisition (the tab-switch
+ * case): the persistent VFS was closed and its pool maps cleared, so the
+ * next open must re-create the VFS and re-acquire all six OPFS access
+ * handles from disk.
+ */
+export const __plumber = { getDatabase, closeDatabase };
 
 /**
  * Relinquish the DB and, on web, release expo-sqlite's 6 OPFS sync access

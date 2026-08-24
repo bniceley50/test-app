@@ -54,6 +54,13 @@ const MIN_INT32 = -0x80000000;
 let _sqlite3: SQLiteAPI | null = null;
 let _vfs: AccessHandlePoolVFS | null = null;
 let _vfsMemory: MemoryVFS | null = null;
+// DSH patch (test-app): the emscripten module produced by the wa-sqlite
+// factory, cached so later `maybeInitAsync` calls in the SAME document —
+// in particular the close/re-acquire path where _vfs is re-created — pass
+// a live module to AccessHandlePoolVFS.create (the original code kept the
+// factory result in a function-local that is only assigned on the very
+// first call).
+let _wasmModule: ReturnType<typeof WaSQLiteFactory> | null = null;
 
 const databaseIdMap = new Map<number, DatabaseEntity>();
 const statementIdMap = new Map<number, StatementEntity>();
@@ -261,16 +268,23 @@ async function closeDatabase(nativeDatabaseId: number) {
     await sqlite3.close(dbEntity.pointer);
   }
   // DSH patch (test-app): when no databases remain open, release the
-  // persistent VFS's 6 OPFS sync access handles for the life of this worker.
-  // On a hard full-page navigation the previous (garbage) document's
-  // worker otherwise still holds one open sync handle on each pool file —
-  // Chromium allows only one per file — so the new document's VFS create
-  // hits NoModificationAllowedError until the old document is GC'd.
-  // (No-op on native; `vfs.close` is only implemented by the web pool VFS.)
+  // persistent VFS's 6 OPFS sync access handles.
+  //  (a) On a hard full-page navigation the previous (garbage) document's
+  //  worker otherwise still holds one open sync handle on each pool file —
+  //  Chromium allows only one per file — so the incoming document gets a
+  //  deterministic release instead of waiting for Chrome to GC the old doc.
+  //  (b) vfs.close() also RE-ARMS the VFS (clears #directoryHandle), so a
+  //  same-document re-open after close (tab switch, "Load again", boot
+  //  retry) re-runs isReady → #acquireAccessHandles, re-acquiring all six
+  //  pool files from disk with their associations restored by header.
+  //  (No-op on native; `vfs.close` is only implemented by the web pool
+  //  VFS.) NOTE: _vfs is intentionally NOT nulled here — the worker reuses
+  //  this VFS instance for its whole life; re-arming is enough because
+  //  isReady() gates on #directoryHandle.
   if (databaseIdMap.size === 0) {
     console.log('[plumber-sqlite] last db closed, releasing OPFS pool sync handles');
     await vfs.close();
-    console.log('[plumber-sqlite] pool sync handles released');
+    console.log('[plumber-sqlite] pool sync handles released (VFS will re-acquire on next open)');
   }
 }
 
@@ -789,12 +803,11 @@ async function maybeInitAsync(): Promise<{
   vfs: AccessHandlePoolVFS;
   vfsMemory: MemoryVFS;
 }> {
-  let module: ReturnType<typeof WaSQLiteFactory> | null = null;
   if (!_sqlite3) {
-    module = await WaSQLiteFactory({
+    _wasmModule = await WaSQLiteFactory({
       locateFile: () => wasmModule,
     });
-    _sqlite3 = SQLite.Factory(module) as SQLiteAPI;
+    _sqlite3 = SQLite.Factory(_wasmModule) as SQLiteAPI;
     if (!_sqlite3) {
       throw new Error('Failed to initialize wa-sqlite');
     }
@@ -807,16 +820,31 @@ async function maybeInitAsync(): Promise<{
   // Now each VFS is created (and registered) independently, so a partial
   // failure is retried on the NEXT open (fresh boot attempt) instead of
   // stranding the worker.
+  //
+  // Both VFSes are constructed from the SCOPE-cached `_wasmModule`: upstream
+  // kept the factory result in a function-local that is only assigned inside
+  // `if (!_sqlite3)`, so any later `maybeInitAsync` call in a reused worker
+  // (the same-document close/re-open path our close patch depends on) would
+  // pass `undefined` into AccessHandlePoolVFS and its FacadeVFS
+  // `_module.UTF8ToString` would throw on the null module (observed in the
+  // tab-switch probe: 'cannot read properties of null (reading UTF8ToString)').
   if (_vfs == null) {
-    _vfs = await AccessHandlePoolVFS.create(VFS_NAME_PERSISTENT, module!);
+    _vfs = await AccessHandlePoolVFS.create(VFS_NAME_PERSISTENT, _wasmModule);
     if (_vfs == null) {
       throw new Error('Failed to initialize AccessHandlePoolVFS');
     }
     _sqlite3!.vfs_register(_vfs, true);
   }
+  // DSH patch (test-app): isReady() is the idempotent home of the pool
+  // acquisition (it no-ops when #directoryHandle is set). After our close
+  // patch RELEASES the pool handles it RE-ARMS the VFS (clears
+  // #directoryHandle), so this call makes a same-document re-open re-run
+  // #acquireAccessHandles against the six pool files on disk instead of
+  // opening into a drained singleton (capacity 0 -> 'cannot create file').
+  await _vfs.isReady();
 
   if (_vfsMemory == null) {
-    _vfsMemory = await MemoryVFS.create(VFS_NAME_MEMORY, module!);
+    _vfsMemory = await MemoryVFS.create(VFS_NAME_MEMORY, _wasmModule);
     if (_vfsMemory == null) {
       throw new Error('Failed to initialize MemoryVFS');
     }
