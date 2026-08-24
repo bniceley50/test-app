@@ -84,7 +84,7 @@ Expo + React Native + TypeScript
   case-insensitive, "1/2"≡"0.5"); spaced-rep due-queue blended to the TOP of
   Drill + Mock decks (`getDeckWithDue`); `bookmarks` table + Bookmarks tab
   (questions + code sections, editable notes, tap-through).
-- **P4 verifying (2026-08-24, branch `claude/general-session-jCAfN`, commit `ef5ffe4`):**
+- **P4 verifying (2026-08-24, branch `claude/general-session-jCAfN`, commit `1dff063`):**
   web end-to-end re-proven on the shipped core — `node tools/e2e-chrome.cjs`
   **30/30 gates PASS solo** (mock full cycle incl. per-topic breakdown, 50-Q
   scaling to 41 Q / 123 min, drill full cycle + bookmark + note + SQLite

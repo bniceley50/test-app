@@ -59,7 +59,7 @@ Rule: only `verified:1` questions ever enter a study mode (drill / missed / mock
 - [ ] Fully offline on a real phone (airplane mode), iOS + Android. *(P1 pass pre-P3; P3 re-test outstanding with the owner.)*
 - [ ] Owner runs one full study cycle on their phone and confirms it "feels done."
 
-**STATUS (2026-08-24, commit `e314ede`):** every gate green on the final code —
+**STATUS (2026-08-24, commit `1dff063`):** every gate green on the final code —
 web E2E **30/30 solo** (`tools/e2e-chrome.cjs`) + auto-submit **re-proven on
 final code** (`tools/e2e-autosubmit.cjs`, hard DB-backed: exactly one mock
 session, completed at 75.0 min) + **live-server proof**
