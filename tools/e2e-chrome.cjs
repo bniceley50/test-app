@@ -258,9 +258,21 @@ const HELPER_SRC = `(function(){
     }
   }
   const drillResults = await bodyText();
-  step('drill: completes 10 Q to Results (score + verdict)',
-    /\b\d+ \/ 10\b/.test(drillResults) && (drillResults.includes('Passing Score!') || drillResults.includes('Keep Drilling')));
+  // DB-side proof of session completion: startDrill and createSession must share
+  // the same id or completeSession() UPDATEs nothing and the row stays open.
+  const drillDb = await evAwait(`(async () => {
+    const db = globalThis.__plumberDb;
+    if (!db) return 'no-seam';
+    const r = await db.getFirstAsync(
+      "SELECT sum(case when completed_at IS NOT NULL then 1 else 0 end) as done, count(*) as total FROM study_sessions WHERE mode IN ('drill','topic') AND started_at > datetime('now', '-10 minutes')");
+    return r ? r.done + '/' + r.total : 'no-rows';
+  })()`);
+  const drillDbOk = typeof drillDb === 'string' && /^\d+\/\d+$/.test(drillDb)
+    && drillDb.slice(0, drillDb.indexOf('/')) === drillDb.slice(drillDb.indexOf('/') + 1);
+  step('drill: completes 10 Q to Results (score + verdict + DB session row closed)',
+    /\b\d+ \/ 10\b/.test(drillResults) && (drillResults.includes('Passing Score!') || drillResults.includes('Keep Drilling')) && drillDbOk);
   console.log('  drill results head: ' + drillResults.slice(0, 100).replace(/\n/g, ' | '));
+  console.log('  drill sessions completed in-run: ' + drillDb);
   await shot('05-drill-results');
 
   // 5b. Spaced-rep (locked P3): the due queue must LEAD the deck.
@@ -330,25 +342,53 @@ const HELPER_SRC = `(function(){
   step('reload: app reboots cleanly (splash hides again)', home3.includes('KY Plumber Prep'));
   step('reload: study stats persisted in SQLite (studied still > 0)', /\b[1-9]\d* \/ 41 questions studied/.test(home3));
   await nav('/bookmarks');
-  let bm2 = await waitFor(t => t.includes('QUESTION') || t.includes('No bookmarks yet'), 30000, 'bookmarks after reload');
-  step('reload: bookmark + note persisted', !bm2.includes('No bookmarks yet') && bm2.includes('📝'));
+  // The list commits after per-row async lookups; require the QUESTION row AND
+  // the 📝 note hint, stable across two consecutive samples (~2s apart), so the
+  // gate never captures a mid-commit render (2026-08-24 flake run).
+  let persistOk = false, lastSample = '∅', same = 0;
+  for (let i = 0; i < 15 && !persistOk; i++) {
+    const t = await bodyText();
+    const ok = !t.includes('No bookmarks yet') && !t.includes('Loading bookmarks')
+      && (t.includes('QUESTION') || t.includes('CODE SECTION')) && t.includes('📝');
+    same = (ok && t === lastSample) ? same + 1 : 0;
+    lastSample = t;
+    if (ok && same >= 1) { persistOk = true; break; }
+    await sleep(2000);
+  }
+  step('reload: bookmark + note persisted', persistOk);
   await shot('07-bookmarks-persisted');
 
   // 8. Missed: via home card
   await nav('/');
   await waitFor(t => t.includes('Missed Questions'), 60000, 'home for missed');
+  // The card title is plain text; RN-web hit-tests bubbled press chains, so an
+  // exact text-node tap (climb 0) is enough. If the text is missing from the DOM
+  // while bodyText shows it (hydration race seen 2026-08-24), retry higher
+  // climbs after re-injecting helpers.
   let missedSettled = false;
-  for (let attempt = 0; attempt < 5 && !missedSettled; attempt++) {
+  for (let attempt = 0; attempt < 7 && !missedSettled; attempt++) {
     await evRaw(HELPER_SRC);
-    const tapRes = await tap(`window.__tap('Missed Questions', 2)`);
+    const taps = [];
+    let tapped = false;
+    for (const lvl of [0, 2]) {
+      const tapRes = await tap(`window.__tap('Missed Questions', ${lvl})`);
+      taps.push(`l${lvl}:${String(tapRes).slice(0, 30)}`);
+      if (String(tapRes).startsWith('tapped')) { tapped = true; break; }
+      await sleep(1200);
+    }
     await sleep(2500);
     const t = await bodyText();
-    missedSettled = t.includes('No missed questions right now') || /\b1 \/ \d+\b/.test(t);
-    if (!missedSettled) console.log(`  missed tap attempt ${attempt}: ${tapRes}`);
+    missedSettled = t.includes('No missed questions right now')
+      || (t.includes('MISSED QUESTIONS') && /\b1 \/ \d{1,3}\b/.test(t));
+    if (!tapped || !missedSettled) console.log(`  missed tap attempt ${attempt}: ` + taps.join(' ')
+      + ` | body head: ${t.slice(0, 100).replace(/\n/g, ' | ')}`);
   }
   const missed = await bodyText();
-  step('missed: reachable from home, settles with reviewed questions', missed.includes('No missed questions right now') || /\b1 \/ \d+\b/.test(missed));
-  console.log('  missed landing state:', missed.includes('No missed questions right now') ? 'EMPTY' : 'QUESTION SHOWN');
+  step('missed: reachable from home, settles with reviewed questions',
+    missed.includes('No missed questions right now')
+      || (missed.includes('MISSED QUESTIONS') && /\b1 \/ \d{1,3}\b/.test(missed)));
+  console.log('  missed landing state:', missed.includes('No missed questions right now') ? 'EMPTY'
+    : (missed.includes('MISSED QUESTIONS') && /\b1 \/ \d{1,3}\b/.test(missed)) ? 'QUESTION SHOWN' : 'UNSETTLED');
 
   // 9. Topics
   await nav('/topics');

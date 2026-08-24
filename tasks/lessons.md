@@ -67,6 +67,16 @@
 - **Rule**: If the web server job (or any long `expo start`) dies with an uncaught `FSWatcher` error after files were created/edited, don't chase app code — restart the server and treat it as a watcher race. Keep dev-server jobs separate from edit-heavy phases when possible; the E2E run itself is the smoke test that the server is alive.
 - **Date**: 2026-08-23
 
+### 14. [testing] A killed node driver does NOT kill its detached Chrome — a stale CDP port silently re-targets you
+- **Pattern**: `tools/e2e-autosubmit.cjs` spawns Chrome with `detached: true`. Killing the node job leaves the Chrome (renderers reparent to init) holding the `--remote-debugging-port`. The next run re-fetched `http://127.0.0.1:9231/json/list`, grabbed the *first* `type==='page'` target — the **zombie's** exam tab, not its own freshly-spawned Chrome. Result: the run reported a "pass/fail" from a different tab, the real Chrome's profile held two identical start-timestamp mock rows but zero `question_attempts`, and the countdown drifted because the driver was navigating a tab in a different browser.
+- **Rule**: Before reusing a CDP port, kill any `chrome.exe` whose command line contains the temp prefix (`chrome-auto-*`) — note that a PowerShell regex class must include the backslash or it matches nothing. Prefer an incrementing port; log the `mkdtemp` profile basename and each poll's `pageUrl` so cross-wiring is loud. `tools/opfs-sql.cjs` can post-mortem any profile's OPFS blob (wa-sqlite stores the SQLite after a 4 KB header block, so a naive "file starts with `SQLite`" check misses it).
+- **Date**: 2026-08-24
+
+### 15. [ui] `startExam` needs a synchronous re-entrancy guard
+- **Pattern**: Two fast presses (or a synthesized pointer-event chain) can both read `loading === false` — `setLoading(true)` hasn't painted yet — and each call `createSession()`, leaving an orphaned `mock_exam` row with `completed_at IS NULL` forever. The `onPress={() => loading && startExam(m)}`-style guard is asynchronous and doesn't close the race.
+- **Rule**: Use a `useRef` boolean (`startingRef`) set to `true` before the first `await` in `startExam` and reset in `finally`; early-return if already true. The existing `onPress={() => !loading && startExam(m)}` guard is asynchronous — both event handlers fire before the re-render — so it doesn't close the race on its own.
+- **Date**: 2026-08-24
+
 ## Format
 Each lesson should include:
 - **Category tag**: [auth], [db], [testing], [ui], [infra], [content], [expo], [navigation]

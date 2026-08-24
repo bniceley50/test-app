@@ -55,10 +55,11 @@ export default function DrillScreen() {
       }
 
       setLoadError(false);
-      startDrill(questions, params.topic ? 'topic' : 'drill');
+      const sessionId = uid();
+      startDrill(questions, params.topic ? 'topic' : 'drill', sessionId);
 
       const session = {
-        id: uid(),
+        id: sessionId,
         mode: params.topic ? 'topic' as const : 'drill' as const,
         topic_filter: params.topic || null,
         question_count: questions.length,

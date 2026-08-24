@@ -33,10 +33,11 @@ export default function MissedScreen() {
       }
 
       setLoadError(false);
-      startDrill(questions, 'missed');
+      const sessionId = uid();
+      startDrill(questions, 'missed', sessionId);
 
       const session = {
-        id: uid(),
+        id: sessionId,
         mode: 'missed' as const,
         topic_filter: null,
         question_count: questions.length,

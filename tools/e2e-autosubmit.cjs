@@ -1,13 +1,16 @@
-// Auto-submit gate v3: start a REAL 25-Q / 75-min mock exam and wait out the
+// Auto-submit gate v4: start a REAL 25-Q / 75-min mock exam and wait out the
 // actual countdown to zero — nothing touched. Proves the P2 locked behavior
-// "auto-submit at zero" end-to-end (timer tick -> submitExam(true) -> banner).
+// "auto-submit at zero" end-to-end (timer tick -> submitExam(true) -> banner)
+// AND that the auto-submit wrote a completed study_sessions row in the run's
+// own OPFS profile (banner without its DB row = the 2026-08-24 phantom,
+// which came from a zombie Chrome holding the CDP port).
 // ~78 min total. Fresh profile (empty OPFS -> first-boot seeding).
 //
-// v3 (2026-08-23): the v1 run ended on the home screen with post-exam stats
-// visible, which means the tab either crashed/restored mid-exam or navigated.
-// This version logs the target's URL + countdown on every CHANGE, keeps the
-// Chrome tab visible (no backgrounding flags), and re-validates the CDP target
-// each poll so "TAB-GONE" is loud, not silent.
+// v4 (2026-08-24): fresh CDP port 9233 (9231 got claimed by a killed run's
+// detached Chrome and was driving a "pass" over the wrong tab), per-poll
+// target-id liveness check, own-profile DB self-report as a hard pass
+// requirement, and every console line teed into tools/autosub-run.log so a
+// truncated job-output window can't hide the finish path.
 const { spawn } = require('child_process');
 const fs = require('fs');
 const os = require('os');
@@ -175,9 +178,12 @@ const MAX_MINUTES = 86;
     } catch (e) { console.log('screenshot failed: ' + e); }
   }
   const totalMin = Math.round((Date.now() - t0) / 60000);
-  console.log((ok ? 'AUTOSUB PASS' : 'AUTOSUB FAIL') + ' — run ' + totalMin + ' min, ' + polls + ' polls, profile ' + path.basename(profile));
-  // DB self-report: find our own OPFS blob and dump mock sessions + attempts,
-  // so the run's own profile is ground truth for the auto-submit record.
+  const dbReport = [];
+  let dbOk = false;
+  // DB self-report: find our own OPFS blob and dump the run's mock sessions +
+  // attempts so the profile is ground truth. Hard requirement: exactly ONE
+  // mock_exam session started during this run, completed, with elapsed time
+  // in the expected ~75-min window (auto-submit fires at endTsRef).
   try {
     const os2 = require('os');
     const path2 = require('path');
@@ -195,20 +201,35 @@ const MAX_MINUTES = 86;
       const { DatabaseSync } = require('node:sqlite');
       const buf = fs.readFileSync(blob);
       const off = buf.indexOf(Buffer.from('SQLite format 3\0'));
+      if (off < 0) { dbReport.push('  no SQLite magic in blob'); }
       const tdir = fs.mkdtempSync(path2.join(os2.tmpdir(), 'q-'));
       const dbf = path2.join(tdir, 'x.db');
       fs.writeFileSync(dbf, buf.subarray(off));
       const db = new DatabaseSync(dbf, { readOnly: true });
-      const ss = db.prepare("SELECT mode, question_count, correct_count, total_time_ms, started_at, completed_at FROM study_sessions ORDER BY started_at").all();
-      const att = db.prepare("SELECT count(*) n, sum(is_correct) c FROM question_attempts").get();
-      const blank = db.prepare("SELECT count(*) n FROM question_attempts WHERE selected_answer=''").get();
+      const all = db.prepare("SELECT mode, question_count, correct_count, total_time_ms, started_at, completed_at FROM study_sessions ORDER BY started_at").all();
+      const rows = all.filter(s => !s.started_at || Date.parse(s.started_at) >= t0 - 5 * 60000);
+      const mocks = rows.filter(s => s.mode === 'mock_exam');
+      let att = 'n/a';
+      try { att = JSON.stringify(db.prepare("SELECT count(*) n, sum(is_correct) c FROM question_attempts WHERE session_id IN (SELECT id FROM study_sessions WHERE started_at > datetime('now','-3 hours'))").get()); } catch (e2) { att = 'err ' + e2.message; }
+      dbOk = mocks.length === 1
+        && mocks[0].completed_at != null
+        && (mocks[0].total_time_ms || 0) >= 44 * 60000
+        && (mocks[0].total_time_ms || 0) <= 80 * 60000;
+      console.log('DB self-report: mock_sessions_in_run=' + mocks.length + ' dbOk=' + dbOk + ' | attempts(this run): ' + att);
+      for (const s of rows) dbReport.push('  session: ' + s.mode + ' q=' + s.question_count + ' correct=' + s.correct_count
+        + ' time=' + ((s.total_time_ms || 0) / 60000).toFixed(1) + 'min completed=' + s.completed_at);
+      if (rows.length === 0) dbReport.push('  note: no study_sessions rows newer than run start in this profile');
       db.close();
-      console.log('DB self-report: attempts=' + att.n + ' correct=' + att.c + ' blank=' + blank.n + ' sessions=' + ss.length);
-      for (const s of ss) console.log('  session: ' + s.mode + ' q=' + s.question_count + ' correct=' + s.correct_count +
-        ' time=' + ((s.total_time_ms || 0) / 60000).toFixed(1) + 'min completed=' + s.completed_at);
       fs.rmSync(tdir, { recursive: true, force: true });
-    } else console.log('DB self-report: no OPFS blob found for this profile');
+    } else {
+      console.log('DB self-report: no OPFS blob found for this profile');
+      dbReport.push('  (no OPFS blob — cannot verify session)');
+    }
   } catch (e) { console.log('DB self-report err: ' + (e && e.message)); }
+  const finalOk = ok && dbOk;
+  console.log((finalOk ? 'AUTOSUB PASS' : 'AUTOSUB FAIL') + ' — run ' + totalMin + ' min, ' + polls + ' polls, profile ' + path.basename(profile));
+  for (const line of dbReport) console.log(line);
+  if (ok && !dbOk) console.log('  (banner on screen but DB does not back it up — see session rows above)');
   try { proc.kill('SIGTERM'); } catch {}
-  process.exit(ok ? 0 : 1);
+  process.exit(finalOk ? 0 : 1);
 })().catch(e => { console.log('AUTOSUB crashed:', e.stack || String(e)); process.exit(2); });
