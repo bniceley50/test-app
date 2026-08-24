@@ -12,19 +12,20 @@ if (!config.resolver.assetExts.includes('wasm')) {
 }
 
 // Keep Metro's file watcher away from volatile dirs: git's Windows COW saves
-// create hidden `.NAME.<pid>.<uuid>.tmpdir` subdirectories beside the file
-// being written, and FallbackWatcher throws an uncaught ENOENT on those,
-// which KILLS `expo start` (lessons.md #13 — two fatal crashes this project).
-// This metro version derives the single ignore regex (used for BOTH crawl and
-// watch — see metro-file-map/src/Index.js ignoreForCrawl + ignorePatternForWatch)
-// from `resolver.blockList` (metro createFileMap.getIgnorePattern). Block the
-// three volatile project dirs there: tools/ (node CDP scripts), tasks/ (docs +
-// evidence PNGs), dist/ (export output). None of them are imported by app
-// source, so a crawler exception is safe too.
-const VOLATILE_DIRS = /(^|[/\\])(tools|tasks|dist)[/\\]/;
+// create hidden `.NAME.<pid>.<uuid>.tmpdir` subdirs beside the file being
+// written, and FallbackWatcher throws an uncaught ENOENT on them → kills
+// `expo start` (lessons.md #13, fatal twice). Metro derives ONE watcher
+// ignore-regex from `config.watcher.ignorePattern` → blockList. Tools /
+// tasks / dist are never imported, so excluding them from the crawl+watch is
+// safe and keeps the long-lived dev server immune to doc/tool edits. The
+// `^` anchor is essential: react-native-web and friends keep their `dist/`
+// under node_modules, and an unanchored match clobbered web resolution.
 config.resolver = {
   ...(config.resolver || {}),
-  blockList: [...(config.resolver?.blockList || []), VOLATILE_DIRS],
+  blockList: [
+    ...(config.resolver?.blockList || []),
+    new RegExp('^(tools|tasks|dist)[/\\\\]'),
+  ],
 };
 
 module.exports = config;
