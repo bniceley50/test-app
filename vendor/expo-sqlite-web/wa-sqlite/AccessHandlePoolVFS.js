@@ -304,35 +304,22 @@ export class AccessHandlePoolVFS extends FacadeVFS {
     }
 
     // Open access handles in parallel, separating associated and unassociated.
-    // DSH patch (test-app): Chromium allows only ONE open FileSystemSyncAccessHandle
-    // (or writable stream) per file at a time. If THIS document is the product of a
-    // hard full-page navigation, the PREVIOUS (now garbage, but not yet reclaimed)
-    // document's expo-sqlite worker still holds sync handles on these same pool
-    // files → createSyncAccessHandle throws NoModificationAllowedError. Without
-    // this tolerance that one rejection poisons the whole Promise.all and the VFS
-    // creation fails; the worker's one-shot init then reports "Invalid VFS state"
-    // for the life of the NEW document (sticky null _vfs). So: skip a pool file
-    // we cannot open (the opener wins; its header data is persisted and will be
-    // re-read by that document itself), warn once, and let isReady top the pool
-    // capacity back up afterwards.
-    let skippedBlocked = false;
+    //
+    // DSH patch (test-app): keep the ORIGINAL throw-on-first-failure behavior
+    // deliberately. Chromium allows exactly ONE open FileSystemSyncAccessHandle
+    // per file at a time. After a hard full-page navigation the PREVIOUS
+    // (garbage but not yet GC'd) document's pool VFS still holds a sync handle
+    // on each of these files, so createSyncAccessHandle throws
+    // NoModificationAllowedError. We do NOT skip the blocked file here because
+    // it may be the one holding the main DB: skipping it and re-creating fresh
+    // pool files would silently lose the user's data. Instead the failure
+    // rejects from AccessHandlePoolVFS.create -> openDatabaseAsync, and the
+    // app-level backoff (lib/database.ts) + the previous document releasing its
+    // handles on pagehide (closeDatabase -> vfs.close) make a later retry
+    // acquire all six files, data intact.
     await Promise.all(
       files.map(async ([name, handle]) => {
-        let accessHandle;
-        try {
-          accessHandle = await handle.createSyncAccessHandle();
-        } catch (e) {
-          if (
-            e &&
-            e.name === 'NoModificationAllowedError' &&
-            !skippedBlocked
-          ) {
-            skippedBlocked = true;
-            console.warn('[AccessHandlePoolVFS] pool file(s) still held by another context; skipping until released');
-            return;
-          }
-          throw e;
-        }
+        const accessHandle = await handle.createSyncAccessHandle();
         this.#mapAccessHandleToName.set(accessHandle, name);
         const path = this.#getAssociatedPath(accessHandle);
         if (path) {

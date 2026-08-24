@@ -268,7 +268,9 @@ async function closeDatabase(nativeDatabaseId: number) {
   // hits NoModificationAllowedError until the old document is GC'd.
   // (No-op on native; `vfs.close` is only implemented by the web pool VFS.)
   if (databaseIdMap.size === 0) {
+    console.log('[plumber-sqlite] last db closed, releasing OPFS pool sync handles');
     await vfs.close();
+    console.log('[plumber-sqlite] pool sync handles released');
   }
 }
 

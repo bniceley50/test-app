@@ -39,11 +39,26 @@ export default function RootLayout() {
   // "Invalid VFS state" dead-end on hard navigation to any route.
   useEffect(() => {
     if (Platform.OS !== 'web') return;
-    const onHide = () => {
-      closeDatabase().catch((e) => console.warn('closeDatabase on pagehide:', e));
+    let closed = false;
+    const onHide = (label: string) => {
+      if (closed) return; // first event wins; later ones are no-ops
+      closed = true;
+      console.log(`[plumber-app] ${label}: releasing db pool handles (web)`);
+      closeDatabase().catch((e) => console.warn('closeDatabase onHide:', e));
     };
-    window.addEventListener('pagehide', onHide);
-    return () => window.removeEventListener('pagehide', onHide);
+    const onPageHide = () => onHide('pagehide');
+    const onVis = () => {
+      if (document.visibilityState === 'hidden') onHide('visibilitychange(hidden)');
+    };
+    const onBeforeUnload = () => onHide('beforeunload');
+    window.addEventListener('pagehide', onPageHide);
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => {
+      window.removeEventListener('pagehide', onPageHide);
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('beforeunload', onBeforeUnload);
+    };
   }, []);
 
   if (!ready) return null;

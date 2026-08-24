@@ -18,19 +18,20 @@
  * every later open in the new document reports "Invalid VFS state" — the UI
  * dead-ends on the web while phones are fine.
  *
- *   1. AccessHandlePoolVFS.#acquireAccessHandles: tolerate
- *      NoModificationAllowedError per pool file (skip it) instead of poisoning
- *      the whole Promise.all; isReady tops the pool capacity back up to 6
- *      afterwards (jOpen needs free pool files for db+wal+journal).
- *   2. worker.maybeInitAsync: create+register each VFS independently so a
- *      partial failure is retried on the next open instead of sticking.
- *   3. worker.closeDatabase: when no tables remain, release the pool's sync
+ *   1. worker.maybeInitAsync: create+register each VFS independently so a
+ *      partial failure is retried on the NEXT open instead of sticking.
+ *      (AccessHandlePoolVFS keeps its throw-on-blocked data-integrity behavior:
+ *      the blocked file may hold the actual DB, so retrying after release is
+ *      safer than skipping it.)
+ *   2. worker.closeDatabase: when no databases remain, release the pool's sync
  *      handles deterministically (app calls this on pagehide) so navigation
- *      away from the page frees files for the incoming document WITHOUT
+ *      away from the page frees the files for the incoming document WITHOUT
  *      waiting for Chrome to GC the old one.
  *
  * The app-side backoff in lib/database.ts boot (web only, ~11.6s worst case
- * under the root splash) covers the rare case where patch (3) didn't run.
+ * under the root splash) covers the race window; the pagehide close in
+ * app/_layout.tsx normally lets the first or second attempt win on the
+ * incoming page.
  */
 const fs = require('fs');
 const path = require('path');
