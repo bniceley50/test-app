@@ -1,0 +1,18 @@
+target: http://localhost:8090/code
+navigated to home; waiting for Drill...
+home ready: true (KY Plumber Prep0Day Streak0%Accuracy0StudiedStart Drill10 questions, ~5 minutes�)
+navigated to /code; waiting...
+BODY: "Code ReferenceCould not load code sections.Load again🏠🏠Home📊📊Topics⭐⭐Bookmarks📖📖Code\n"
+SEAM: "no-seam"
+CONSOLE (5):
+  | Database ready with 41 questions
+  | Database ready with 41 questions
+  | Database init error: Error: NoModificationAllowedError: Failed to execute 'createSyncAccessHandle' on 'FileSystemFileHandle': Access Handles cannot be created if there is another open Access Handle or Writable stream associated with the same file.
+    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-65d66e8d51b9c962495648d
+  | Error loading code sections: Error: Error: Invalid VFS state
+    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-65d66e8d51b9c962495648de636bd839.js:906:602)
+    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-65d66e8d51b9c962495648de636bd839.js:905:600)
+  | Error loading code sections: Error: Error: Invalid VFS state
+    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-65d66e8d51b9c962495648de636bd839.js:906:602)
+    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-65d66e8d51b9c962495648de636bd839.js:905:600)
+PAGEDERRS (0):

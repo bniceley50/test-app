@@ -1,17 +1,49 @@
 import * as SQLite from 'expo-sqlite';
+import { Platform } from 'react-native';
 import { Question, QuestionAttempt, StudySession, CodeSection, TopicStats } from './types';
 import { uid } from './uid';
 
 let db: SQLite.SQLiteDatabase;
 
+/**
+ * Open the DB, retrying on the web full-page-navigation OPFS race.
+ *
+ * On web, expo-sqlite runs wa-sqlite.wasm in a worker holding a File System
+ * *sync access handle*. Chromium permits only ONE open sync handle per file
+ * at a time, and a previous document's handle can still be open right after a
+ * hard navigation even when no live query needs it → `openDatabaseAsync`
+ * throws `NoModificationAllowedError` and the whole handle is orphaned
+ * (every later query: `Invalid VFS state`). The stale handle releases within
+ * a few hundred ms, so a bounded retry succeeds. Native (SQLite on disk)
+ * never hits this and succeeds first try.
+ */
+async function openWithRetry(): Promise<SQLite.SQLiteDatabase> {
+  const attempts = Platform.OS === 'web' ? 5 : 1;
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await SQLite.openDatabaseAsync('plumber_prep_v3.db');
+    } catch (e) {
+      lastErr = e;
+      if (i === attempts - 1) break;
+      console.warn(`[plumber-db] open attempt ${i + 1} failed, retrying in 300ms`, e);
+      await new Promise((r) => setTimeout(r, 300));
+    }
+  }
+  throw lastErr;
+}
+
 export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
   if (!db) {
-    db = await SQLite.openDatabaseAsync('plumber_prep_v3.db');
+    db = await openWithRetry();
+    // Test seam: expose the live handle BEFORE initializeDatabase so tools/
+    // (db-smoke, live-web-check) can observe boot even if init threw. Set it
+    // only when absent so a later document's open — even one that later fails
+    // its own init — never clobbers the first live handle across a full-page
+    // navigation.
+    const globalScope = globalThis as Record<string, unknown>;
+    if (!globalScope['__plumberDb']) globalScope['__plumberDb'] = db;
     await initializeDatabase(db);
-    // Test seam: expose the live handle so tools/e2e-chrome.cjs can backdate a
-    // user_progress.next_review and prove the spaced-rep due-queue leads the
-    // deck. Purely additive — no prod logic reads this.
-    (globalThis as Record<string, unknown>)['__plumberDb'] = db;
   }
   return db;
 }
