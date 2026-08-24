@@ -107,8 +107,9 @@ Expo + React Native + TypeScript
   click-through also passed against the exported static build itself**
   (`E2E_BASE` → static-web on :8090, evidence `art-*.png`), not only Metro —
   so the deployable artifact and the dev server are proven identically
-  end-to-end (lesson 16); a final untouched 75-min auto-submit on the same
-  artifact is being collected as the last machine gate. Remaining:
+  end-to-end (lesson 16); the final untouched 75-min auto-submit on the
+  same exported artifact has PASSED (301 polls, "Time expired — exam was
+  auto-submitted.", DB row closed at 75.0 min). Remaining:
   owner's §C* web click-through (http://localhost:8081),
   C2 phone re-test both devices, "feels done" sign-off, EAS production
   handoff.

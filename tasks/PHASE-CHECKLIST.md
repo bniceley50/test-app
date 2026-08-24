@@ -101,17 +101,20 @@ on BOTH servers. Remaining: owner's §C*
 web click-through (http://localhost:8081), C2 phone re-test both devices,
 "feels done", EAS handoff.
 
-**Round 23 (this round, `f53aa74`):** the shipped-artifact claim that round
-22 left open is now closed — the ENTIRE 30-gate click-through (home/seed,
-full mock cycle incl. 50-Q scaling, drill + bookmark + note, persistence
-across reload, missed, topics tap-to-drill, code search/star, fill-blank
+**Round 23 (this round, `f53aa74`): the SHIPPED-ARTIFACT claim that round
+22 left open is closed — and its final piece (the artifact auto-submit)
+landed this round.** The ENTIRE 30-gate click-through (home/seed, full mock
+cycle incl. 50-Q scaling, drill + bookmark + note, persistence across
+reload, missed, topics tap-to-drill, code search/star, fill-blank
 normalized match) passed **against the exported static build itself**
-(`E2E_BASE` → static-web on :8090; evidence `art-*.png`), so the dev server
-and the deployable artifact are now proven identically end-to-end. A final
-untouched 75-min auto-submit on the same artifact is in flight (lesson 16:
-prove the artifact, not just the dev server). Prior history: P4 consistency
-audit (`73e5c31`), Metro zombie-proofing (round 18), static-export artifact
-proven standalone (round 21, Load-again everywhere).
+(`E2E_BASE` → static-web on :8090; evidence `art-*.png`), and an untouched
+25-Q exam left to run to zero on **that same exported build** auto-submitted
+at 75:00 (301 polls, "Time expired — exam was auto-submitted.", DB session
+row closed at 75.0 min). The dev server and the deployable artifact are now
+proven identical end-to-end (lesson 16: prove the shipped artifact, not
+just the dev server). Prior history: P4 consistency audit (`73e5c31`),
+Metro zombie-proofing (round 18), static-export artifact proven standalone
+(round 21, Load-again everywhere).
 
 **P4 consistency audit (round 17, `73e5c31`):**
 - **`verified=1` in every study-fetch path.** Re-verified all 7 question fetches
