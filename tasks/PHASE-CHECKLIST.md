@@ -83,7 +83,13 @@ zero page errors, close fired in both leaving docs
 `tools/_diag-close-probe.cjs`); **30-gate suite ALL STEPS PASSED on :8081**;
 live checks PASS on both :8081 (evidence 14/15/16) and :8090
 (evidence 17/18/19, re-screenshotted this round — also resolved the
-0-byte ADS strays that had clung to those names). Remaining: owner's §C*
+0-byte ADS strays that had clung to those names). Also closed the four
+hard-navigation shapes end-to-end on BOTH :8081 and :8090
+(`tools/_diag-cold-reload.cjs`, evidence `20`–`23` per port): cold landing
+straight on `/code` (fresh profile — the original dead-end), cold landing
+over an EXISTING database (new chrome process, same OPFS), and two
+consecutive hard `Page.reload` — all land the content list, seam
+`q=41 cs=12`, zero page errors. Remaining: owner's §C*
 web click-through (http://localhost:8081), C2 phone re-test both devices,
 "feels done", EAS handoff. Prior history: P4 consistency audit
 (`73e5c31`), Metro zombie-proofing (round 18), static-export artifact

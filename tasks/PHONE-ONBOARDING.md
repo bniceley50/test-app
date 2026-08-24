@@ -84,10 +84,13 @@ web OPFS fix). Gate: same behavior as the phone test, no phone involved.
 > fixed — when a page leaves, the app now releases its database handles
 > immediately, so the incoming page boots clean. Worst case you may see the
 > splash for up to ~12 s longer than usual; a tab-error card (if one ever
-> appears) has **Load again**. One suggested extra check while you're here:
-> from Home, open **http://localhost:8081/code** in a *new* browser tab and
-> hard-refresh that tab twice — both should show the code list, not an error
-> card.
+> appears) has **Load again**. Machine-proven on THIS build, both servers:
+> cold landing straight on `/code`, cold landing over an existing database,
+> and two consecutive hard refreshes all land the full code list with zero
+> errors (evidence `20`–`23`, per server port suffix). Suggested manual
+> version of the same: from Home, open **http://localhost:8081/code** in a
+> *new* browser tab and hard-refresh that tab twice — both should show the
+> code list, not an error card.
 
 1. **Home** loads (no spinner stuck), shows your 41-question bank + streak
    stats.
