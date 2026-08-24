@@ -1,11 +1,19 @@
 // E2E click-through in REAL Chrome via CDP (port 9223).
 // Fresh profile per run => empty OPFS => seeds the real 41-Q bank on boot.
+// Base URL parameterized (default the :8081 dev server): set E2E_BASE to
+// point the exact same click-through at another artifact — e.g.
+// E2E_BASE=http://localhost:8090 to prove the EXPORTED static build
+// (served by tools/static-web.cjs) passes the same 30 gates, not just the
+// dev server (lesson 16).
 // Gates: boot/seed, mock full cycle, drill full cycle + bookmark+note,
 // persistence across reload, missed, topics, code. Screenshots in tasks/evidence/.
 const { spawn } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+
+const BASE = (process.env.E2E_BASE || 'http://localhost:8081').replace(/\/+$/, '');
+const SHOT_PREFIX = process.env.E2E_SHOT_PREFIX || '';
 
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'chrome-e2e-'));
 const chrome = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
@@ -73,7 +81,7 @@ async function waitFor(predicate, timeoutMs, label) {
 async function shot(name) {
   try {
     const r = await cdpSend('Page.captureScreenshot', { format: 'png' });
-    const file = path.join(__dirname, '..', 'tasks', 'evidence', name + '.png');
+    const file = path.join(__dirname, '..', 'tasks', 'evidence', SHOT_PREFIX + name + '.png');
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, Buffer.from(r.data, 'base64'));
     console.log('  screenshot: ' + path.basename(file));
@@ -144,7 +152,8 @@ const HELPER_SRC = `(function(){
   await new Promise(res => { ws.onopen = res; });
   await cdpSend('Runtime.enable');
   await cdpSend('Page.enable');
-  await cdpSend('Page.navigate', { url: 'http://localhost:8081/' });
+  await cdpSend('Page.navigate', { url: BASE + '/' });
+  console.log('E2E base: ' + BASE + (SHOT_PREFIX ? ' | screenshots: ' + SHOT_PREFIX + '*' : ''));
 
   const failures = [];
   const step = (name, ok) => {

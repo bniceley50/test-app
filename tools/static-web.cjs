@@ -11,7 +11,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..', 'dist');
-const PORT = 8090;
+const PORT = Number(process.env.STATIC_PORT || 8090);
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',

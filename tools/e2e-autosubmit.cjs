@@ -16,8 +16,9 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'chrome-auto-'));
-const PORT = 9233;
-console.log('PROFILE ' + path.basename(profile));
+const PORT = process.env.AUTOSUB_CDP_PORT || 9233;
+const BASE = (process.env.AUTOSUB_BASE || 'http://localhost:8081').replace(/\/+$/, '');
+console.log('PROFILE ' + path.basename(profile) + ' | base ' + BASE + ' | CDP ' + PORT);
 const proc = spawn('C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', [
   '--remote-debugging-port=' + PORT, '--user-data-dir=' + profile,
   '--no-first-run', '--no-default-browser-check', '--window-size=390,844',
@@ -103,7 +104,7 @@ const MAX_MINUTES = 86;
   const t0 = Date.now();
   const stamp = () => '[' + String(Math.round((Date.now() - t0) / 60000)) + 'm]';
   // 1) boot home (fresh profile: OPFS first-boot seeding takes a few seconds)
-  await cdp('Page.navigate', { url: 'http://localhost:8081/' });
+  await cdp('Page.navigate', { url: BASE + '/' });
   let homeOk = false;
   for (let i = 0; i < 60 && !homeOk; i++) {
     const t = await bodyText();
