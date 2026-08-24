@@ -97,12 +97,17 @@ Expo + React Native + TypeScript
   retry (10 attempts, ≤ ~11.6 s worst case, native still one attempt).
   Proven on the committed tree: warm full-page nav (home → navigated `/code`)
   lands `815KAR20`, seam `q=41 cs=12`, zero page errors, close fired in both
-  leaving docs; close-path probe shows the worker really releases ("Database
-  not found" right after `closeAsync`); **30-gate suite ALL STEPS PASSED**;
-  live checks PASS on :8081 and :8090 (evidence 14–19 re-screenshotted, which
-  also cleared the 0-byte ADS strays off those names). Remaining: owner's §C*
-  web click-through (http://localhost:8081), C2 phone re-test both devices,
-  "feels done" sign-off, EAS production handoff.
+  leaving docs; the four hard-navigation shapes then closed end-to-end on
+  BOTH :8081 and :8090 (`tools/_diag-cold-reload.cjs`, evidence `20`–`23`):
+  cold landing on `/code` (fresh profile — the original dead-end), cold
+  landing over an existing DB (new process, same OPFS), and two consecutive
+  hard reloads; close-path probe shows the worker really releases
+  ("Database not found" right after `closeAsync`); **30-gate suite ALL
+  STEPS PASSED**; live checks PASS on :8081 and :8090 (evidence 14–19
+  re-screenshotted, which also cleared the 0-byte ADS strays off those
+  names). Remaining: owner's §C* web click-through (http://localhost:8081),
+  C2 phone re-test both devices, "feels done" sign-off, EAS production
+  handoff.
 - **P4 remaining:** owner offline re-test after P3 on both phones, re-verify
   flows, EAS production handoff (`eas build --platform ios|android --profile
   production`), and this doc's sign-off box below.
