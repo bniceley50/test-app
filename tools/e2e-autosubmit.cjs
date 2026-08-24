@@ -1,16 +1,27 @@
-// Auto-submit gate: start a REAL 25-Q / 75-min mock exam and wait out the
+// Auto-submit gate v3: start a REAL 25-Q / 75-min mock exam and wait out the
 // actual countdown to zero — nothing touched. Proves the P2 locked behavior
 // "auto-submit at zero" end-to-end (timer tick -> submitExam(true) -> banner).
 // ~78 min total. Fresh profile (empty OPFS -> first-boot seeding).
+//
+// v3 (2026-08-23): the v1 run ended on the home screen with post-exam stats
+// visible, which means the tab either crashed/restored mid-exam or navigated.
+// This version logs the target's URL + countdown on every CHANGE, keeps the
+// Chrome tab visible (no backgrounding flags), and re-validates the CDP target
+// each poll so "TAB-GONE" is loud, not silent.
 const { spawn } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'chrome-auto-'));
-const PORT = 9231;
+const PORT = 9233;
+console.log('PROFILE ' + path.basename(profile));
 const proc = spawn('C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', [
   '--remote-debugging-port=' + PORT, '--user-data-dir=' + profile,
   '--no-first-run', '--no-default-browser-check', '--window-size=390,844',
+  // keep timers honest + tab foreground-rendered, even if the window is not focused
+  '--disable-background-timer-throttling',
+  '--disable-backgrounding-occluded-windows',
+  '--disable-renderer-backgrounding',
 ], { stdio: 'ignore', detached: true });
 proc.unref();
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
@@ -63,12 +74,22 @@ const HELP_SRC = `(function(){
   };
   return 'defined';
 })()`;
-const sleepMs = 20000;
-const MAX_MINUTES = 83;
+const sleepMs = 15000;
+const MAX_MINUTES = 86;
 (async () => {
+  // also append every line to a log file so partial job-output windows can't
+  // hide the finish path
+  const logLine = (s) => { try { fs.appendFileSync(path.join(__dirname, 'autosub-run.log'), s + '\n'); } catch {} };
+  const _log = console.log;
+  console.log = (...a) => { const s = a.join(' '); _log(s); logLine(s); };
   let wsUrl = null;
+  let targetId = null;
   for (let i = 0; i < 60 && !wsUrl; i++) {
-    try { const l = (await (await fetch('http://127.0.0.1:' + PORT + '/json/list')).json()); const p = l.find(t => t.type === 'page'); if (p) wsUrl = p.webSocketDebuggerUrl; } catch {}
+    try {
+      const l = await (await fetch('http://127.0.0.1:' + PORT + '/json/list')).json();
+      const p = l.find(t => t.type === 'page');
+      if (p) { wsUrl = p.webSocketDebuggerUrl; targetId = p.id; }
+    } catch {}
     if (!wsUrl) await sleep(300);
   }
   if (!wsUrl) { console.log('AUTOSUB FAIL: no CDP target'); process.exit(1); }
@@ -77,6 +98,7 @@ const MAX_MINUTES = 83;
   await cdp('Runtime.enable');
   await cdp('Page.enable');
   const t0 = Date.now();
+  const stamp = () => '[' + String(Math.round((Date.now() - t0) / 60000)) + 'm]';
   // 1) boot home (fresh profile: OPFS first-boot seeding takes a few seconds)
   await cdp('Page.navigate', { url: 'http://localhost:8081/' });
   let homeOk = false;
@@ -86,16 +108,16 @@ const MAX_MINUTES = 83;
     if (!homeOk) await sleep(3000);
   }
   if (!homeOk) { console.log('AUTOSUB FAIL: home did not render in 3 min'); process.exit(1); }
-  console.log('home up (fresh profile, seeded) in ' + Math.round((Date.now() - t0) / 1000) + 's');
+  console.log(stamp() + ' home up. my chrome pid=' + proc.pid);
 
   // 2) go to /mock ONCE and wait, in place, for the 25-Q card to render
   await evRaw(`window.location.href = '/mock'`);
-  await sleep(6000); // let the card mount (DB queries run on mount)
+  await sleep(6000);
   let cardSeen = false;
   for (let i = 0; i < 40 && !cardSeen; i++) {
     const t = await bodyText();
     if (t.includes('25 questions')) { cardSeen = true; break; }
-    if (/\b1 \/ 25\b/.test(t)) { console.log('exam already started?! ' + t.slice(0, 80)); break; }
+    if (/\b1 \/ 25\b/.test(t)) { console.log(stamp() + ' exam already started?!'); break; }
     await sleep(3000);
   }
   if (!cardSeen) { console.log('AUTOSUB FAIL: 25-Q card never rendered: ' + (await bodyText()).slice(0, 120).replace(/\n/g, ' | ')); process.exit(1); }
@@ -106,31 +128,44 @@ const MAX_MINUTES = 83;
     await sleep(2500);
     const t = await bodyText();
     started = /\b1 \/ 25\b/.test(t) && /\b7[45]:\d{2}\b/.test(t);
-    if (!started) console.log('start attempt ' + attempt + ': ' + tapRes + ' | ' + t.slice(0, 100).replace(/\n/g, ' | '));
+    if (!started) console.log(stamp() + ' start attempt ' + attempt + ': ' + tapRes + ' | ' + t.slice(0, 80).replace(/\n/g, ' | '));
   }
   if (!started) { console.log('AUTOSUB FAIL: exam did not start'); process.exit(1); }
-  console.log('exam started: 1/25, 75-min countdown running — waiting it out (no touches)');
+  const q1Seed = (await bodyText()).slice(0, 120);
+  console.log(stamp() + ' exam started: 1/25, 75-min countdown, Q1: ' + q1Seed.replace(/\n/g, ' | ').slice(0, 90));
 
-  // 3) wait for the countdown to hit zero and auto-submit to land on results.
-  //     Countdown state lives in React (not the URL), so a real 75-min expiry
-  //     can only happen in this one long-lived page: no reloads allowed.
+  // 3) wait with full observability: log every countdown-minute change + URL
+  //    drift + tab disappearance, so a v1-style surprise is impossible.
   let final = '';
-  let lastMin = -1;
+  let lastCd = '';
   const deadline = Date.now() + MAX_MINUTES * 60000;
+  let polls = 0;
   while (Date.now() < deadline) {
+    polls++;
+    let urlNow = '';
+    let tabAlive = true;
+    try {
+      const list = await (await fetch('http://127.0.0.1:' + PORT + '/json/list')).json();
+      const p = list.find(x => x.id === targetId);
+      if (!p) tabAlive = false; else urlNow = p.url;
+    } catch { tabAlive = false; urlNow = 'cdp-unreachable'; }
     final = await bodyText();
-    const m = final.match(/\b(\d+):(\d{2})\b/);
-    const curMin = m ? Number(m[1]) : -1;
-    if (curMin !== lastMin) { lastMin = curMin; if (curMin % 10 === 0 || curMin < 5) console.log('  ... countdown ' + (m ? m[0] : '?')); }
+    const m = final.match(/\b(\d{1,2}:\d{2})\b/);
+    const cd = tabAlive && m ? m[1] : ('tab-' + (tabAlive ? 'no-countdown' : urlNow));
+    if (cd !== lastCd || urlNow.indexOf('/mock') === -1) {
+      console.log(stamp() + ' url=' + urlNow + ' | countdown=' + cd + ' | head=' + final.split('\n')[0].slice(0, 55).replace(/\n/g, ' '));
+      lastCd = cd;
+      if (!tabAlive && urlNow !== 'cdp-unreachable') { console.log(stamp() + ' !! CDP TARGET DISAPPEARED'); break; }
+    }
     if (/Time expired/.test(final) && /\/ 25 correct/.test(final)) break;
     await sleep(sleepMs);
   }
   const ok = /Time expired/.test(final) && /\/ 25 correct/.test(final);
   const score = final.match(/(\d+) \/ (\d+) correct/);
-  const elapsed = final.match(/(\d+ min \d+ sec|[0-9]{1,3}:\d{2}) elapsed/);
-  console.log('final: ' + final.slice(0, 160).replace(/\n/g, ' | '));
+  const elapsed = final.match(/(\d+ min \d+ sec|(\d{1,3}):(\d{2}) (?:\d+ of .* · )?elapsed|\d{1,3}:\d{2} elapsed)/);
+  console.log(stamp() + ' final head: ' + final.slice(0, 220).replace(/\n/g, ' | '));
   if (ok) {
-    console.log('score: ' + (score ? score[1] + '/' + score[2] + ' correct' : 'n/a') + (elapsed ? ' · elapsed ' + elapsed[1] : ''));
+    console.log(stamp() + ' score: ' + (score ? score[1] + '/' + score[2] + ' correct' : 'n/a') + (elapsed ? ' · elapsed ' + elapsed[0] : ''));
     try {
       const r = await cdp('Page.captureScreenshot', { format: 'png' });
       const file = path.join(__dirname, '..', 'tasks', 'evidence', '12-mock-autosubmit.png');
@@ -140,7 +175,40 @@ const MAX_MINUTES = 83;
     } catch (e) { console.log('screenshot failed: ' + e); }
   }
   const totalMin = Math.round((Date.now() - t0) / 60000);
-  console.log((ok ? 'AUTOSUB PASS' : 'AUTOSUB FAIL') + ' — auto-submit after real countdown (run ' + totalMin + ' min)');
+  console.log((ok ? 'AUTOSUB PASS' : 'AUTOSUB FAIL') + ' — run ' + totalMin + ' min, ' + polls + ' polls, profile ' + path.basename(profile));
+  // DB self-report: find our own OPFS blob and dump mock sessions + attempts,
+  // so the run's own profile is ground truth for the auto-submit record.
+  try {
+    const os2 = require('os');
+    const path2 = require('path');
+    const root = path2.join(profile, 'Default', 'File System');
+    let blob = null;
+    (function walk(d) {
+      if (!fs.existsSync(d) || blob) return;
+      for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+        const p = path2.join(d, e.name);
+        if (e.isDirectory()) walk(p);
+        else if (fs.statSync(p).size > 1000 && fs.readFileSync(p).toString('latin1', 0, 18).startsWith('/plumber_prep_v3')) blob = p;
+      }
+    })(root);
+    if (blob) {
+      const { DatabaseSync } = require('node:sqlite');
+      const buf = fs.readFileSync(blob);
+      const off = buf.indexOf(Buffer.from('SQLite format 3\0'));
+      const tdir = fs.mkdtempSync(path2.join(os2.tmpdir(), 'q-'));
+      const dbf = path2.join(tdir, 'x.db');
+      fs.writeFileSync(dbf, buf.subarray(off));
+      const db = new DatabaseSync(dbf, { readOnly: true });
+      const ss = db.prepare("SELECT mode, question_count, correct_count, total_time_ms, started_at, completed_at FROM study_sessions ORDER BY started_at").all();
+      const att = db.prepare("SELECT count(*) n, sum(is_correct) c FROM question_attempts").get();
+      const blank = db.prepare("SELECT count(*) n FROM question_attempts WHERE selected_answer=''").get();
+      db.close();
+      console.log('DB self-report: attempts=' + att.n + ' correct=' + att.c + ' blank=' + blank.n + ' sessions=' + ss.length);
+      for (const s of ss) console.log('  session: ' + s.mode + ' q=' + s.question_count + ' correct=' + s.correct_count +
+        ' time=' + ((s.total_time_ms || 0) / 60000).toFixed(1) + 'min completed=' + s.completed_at);
+      fs.rmSync(tdir, { recursive: true, force: true });
+    } else console.log('DB self-report: no OPFS blob found for this profile');
+  } catch (e) { console.log('DB self-report err: ' + (e && e.message)); }
   try { proc.kill('SIGTERM'); } catch {}
   process.exit(ok ? 0 : 1);
 })().catch(e => { console.log('AUTOSUB crashed:', e.stack || String(e)); process.exit(2); });

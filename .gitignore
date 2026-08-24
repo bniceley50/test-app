@@ -12,6 +12,9 @@ expo-env.d.ts
 # smoke-test database artifact
 tools/smoke-plumber.db*
 
+# e2e auto-submit run log (regenerated each run)
+tools/autosub-run.log
+
 # Native
 .kotlin/
 *.orig.*

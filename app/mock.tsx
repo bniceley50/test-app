@@ -86,7 +86,13 @@ export default function MockExamScreen() {
   }, [phase]);
 
   // --- Start ---
+  // Synchronous re-entrancy guard: two fast presses (or a synthesized
+  // double-event chain) can both see loading=false and double-create a
+  // session — the second row is then orphaned and never completed.
+  const startingRef = useRef(false);
   async function startExam(mode: (typeof MODES)[number]) {
+    if (startingRef.current) return;
+    startingRef.current = true;
     setLoading(true);
     setLoadError(null);
     try {
@@ -130,6 +136,7 @@ export default function MockExamScreen() {
       setLoadError('Could not start the exam. Try again.');
     } finally {
       setLoading(false);
+      startingRef.current = false;
     }
   }
 
