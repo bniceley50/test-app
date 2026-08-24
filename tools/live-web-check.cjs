@@ -25,7 +25,7 @@ async function cdpSend(method, params) {
     const id = seq.n++;
     const onMsg = (ev) => {
       const msg = JSON.parse(ev.data);
-      if (msg.id === id) { ws.removeEventListener('message', onMsg); resolve(msg); }
+      if (msg.id === id) { ws.removeEventListener('message', onMsg); resolve(msg.result || {}); }
     };
     ws.addEventListener('message', onMsg);
     ws.send(JSON.stringify({ id, method, params: params || {} }));
@@ -40,9 +40,29 @@ async function bodyText() {
 }
 async function evAwait(expression) {
   const r = await cdpSend('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
-  if (r.result && typeof r.result.value === 'string') return r.result.value;
+  if (typeof r.result?.value === 'string') return r.result.value;
   if (r.exceptionDetails) return 'ERR ' + JSON.stringify(r.exceptionDetails).slice(0, 200);
   return '';
+}
+async function pageHtml() {
+  const r = await cdpSend('Runtime.evaluate', {
+    expression: 'document.documentElement.outerHTML.slice(0, 600)',
+    returnByValue: true,
+  });
+  return typeof r.result?.value === 'string' ? r.result.value : '';
+}
+async function evalRaw(expression) {
+  const r = await cdpSend('Runtime.evaluate', { expression, returnByValue: true });
+  if (r.result !== undefined) return String(r.result.value);
+  if (r.exceptionDetails) return 'ERR ' + JSON.stringify(r.exceptionDetails).slice(0, 150);
+  return '';
+}
+async function consoleDump() {
+  const r = await cdpSend('Runtime.evaluate', {
+    expression: '(window.__liveErrors && window.__liveErrors.join("\\n")) || "(no captured console errors)"',
+    returnByValue: true,
+  });
+  return typeof r.result?.value === 'string' ? r.result.value : '';
 }
 async function waitForText(re, timeoutMs, label) {
   const t0 = Date.now();
@@ -82,14 +102,33 @@ async function main() {
       const res = await fetch(`http://127.0.0.1:${PORT}/json/list`);
       const list = await res.json();
       const tgt = list.find(t => t.type === 'page');
-      if (tgt) ws = new WebSocket(tgt.webSocketDebuggerUrl);
-      await sleep(300);
+      if (tgt) {
+        console.log('  attaching to target: ' + tgt.url);
+        ws = new WebSocket(tgt.webSocketDebuggerUrl);
+        await sleep(1500); // let the page start loading
+      }
     } catch {}
   }
   if (!ws) { console.log('LIVE CHECK FAIL: no CDP target'); proc.kill('SIGTERM'); process.exit(1); }
+  // harden: buffer-aware — wait until the socket is open before we send
+  await new Promise((r) => { if (ws.readyState >= 1) return r(); ws.addEventListener('open', () => r(), { once: true }); setTimeout(r, 3000); });
   try {
     await cdpSend('Page.enable');
     await cdpSend('Runtime.enable');
+    // force-navigate to the home page to be certain (some targets start on about:blank)
+    await cdpSend('Page.navigate', { url: BASE + '/' });
+    await evalRaw(`(() => {
+      window.__liveErrors = window.__liveErrors || [];
+      if (!window.__liveHooked) {
+        window.__liveHooked = true;
+        window.addEventListener('error', e => window.__liveErrors.push('error: ' + (e.message || e.type)));
+        window.addEventListener('unhandledrejection', e => {
+          const r = e.reason && e.reason.message ? e.reason.message : String(e.reason);
+          window.__liveErrors.push('promise: ' + r);
+        });
+      }
+      return 'hooked';
+    })()`);
     await sleep(3000);
 
     // --- home: real app must boot (splash hides after seed) ---
@@ -97,12 +136,18 @@ async function main() {
     const hasBank = /41/.test(home);
     // DB-seam bootstrap proof on the live server
     const seed = await evAwait(`(async () => {
-      const db = globalThis.__plumberDb && (await globalThis.__plumberDb());
+      const db = globalThis.__plumberDb;
       if (!db || !db.getAllAsync) return 'no-seam';
       const r = await db.getAllAsync('SELECT COUNT(*) AS c FROM questions');
       return r && r[0] ? 'q=' + r[0].c : 'no-rows';
     })()`);
     const homeOk = hasBank && /^q=41$/.test(seed);
+    if (!homeOk) {
+      console.log('  diag: html head = ' + JSON.stringify((await pageHtml()).slice(0, 400)));
+      console.log('  diag: body children = ' + (await evalRaw('document.body ? document.body.children.length : -1')));
+      console.log('  diag: readyState = ' + (await evalRaw('document.readyState')));
+      console.log('  diag: console errors =', await consoleDump());
+    }
     ok = ok && homeOk;
     console.log((homeOk ? 'PASS' : 'FAIL') + ' home live on :8081 — bank ' + (hasBank ? 'shown' : 'NOT shown') + ', seed ' + seed);
     await shot('14-live-home-8081.png');
