@@ -99,6 +99,14 @@
 - **Rule**: Register the release across `pagehide`, `visibilitychange(hidden)`, AND `beforeunload`, with a **first-wins latch** (`if (closed) return`) so the third is a no-op after the first wins. One `pagehide` listener is not enough — always test against CDP hard navigation specifically: it is the least event-generous case a real user can hit.
 - **Date**: 2026-08-24
 
+### 19. [web] Closing a pool VFS must RE-ARM it — a "drained singleton" is worse than a GC race
+- **Pattern**: Triggering `close()` of expo-sqlite's `AccessHandlePoolVFS` on a plain tab switch (`visibilitychange`) exposed what upstream `close()` had been hiding: it released the six sync handles but left `#directoryHandle` set and the pool maps cleared — and the worker keeps ONE VFS instance as a module singleton for its whole life. Any same-document re-open after close therefore reused a DRAINED VFS (capacity 0): `jOpen` → `cannot create file`, and worse, an in-flight close racing a re-acquire because upstream `#releaseAccessHandles` fired `accessHandle.close()` without awaiting. An upstream quirk amplified it: the wa-sqlite factory result sat in a `maybeInitAsync` function-local, so a second init in the same worker passed `module === undefined` into `AccessHandlePoolVFS.create` (`UTF8ToString` on null). None of this can happen while a browser runs a single tab (the original `close` was never called at all), which is why it only surfaced once close became a first-class path.
+- **Rule**:
+  1. A close that is designed to be FOLLOVED by a re-open must re-arm: release handles (awaiting each `close()` — they're async), then clear the "already initialized" flag so the standard `isReady()`/acquire path re-runs (associations come back from the per-file headers, data intact).
+  2. Audit singleton-with-init-flag objects whenever you add a teardown: `if (_x) return cached; _x = init()` is a trap if `_x` can be cleared without re-running `init`.
+  3. Prove the teardown+re-open pair with an app-level probe (close via the same function the UI calls, then re-boot in the same document, assert the data count) — a cross-document matrix alone will never catch it.
+- **Date**: 2026-08-24
+
 ## Format
 Each lesson should include:
 - **Category tag**: [auth], [db], [testing], [ui], [infra], [content], [expo], [navigation]

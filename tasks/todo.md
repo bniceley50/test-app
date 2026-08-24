@@ -101,11 +101,9 @@ Expo + React Native + TypeScript
   BOTH :8081 and :8090 (`tools/_diag-cold-reload.cjs`, evidence `20`–`23`):
   cold landing on `/code` (fresh profile — the original dead-end), cold
   landing over an existing DB (new process, same OPFS), and two consecutive
-  hard reloads; close-path probe shows the worker really releases
-  ("Database not found" right after `closeAsync`); **30-gate suite ALL
-  STEPS PASSED**; live checks PASS on :8081 and :8090 (evidence 14–19
-  re-screenshotted, which also cleared the 0-byte ADS strays off those
-  names). Remaining: owner's §C* web click-through (http://localhost:8081),
+  hard reloads; same-document close/tab-switch also closed on commit
+  `9ad7cef` (VFS re-acquire; probe: close → re-boot `q=41 cs=12`, lesson
+  19). Remaining: owner's §C* web click-through (http://localhost:8081),
   C2 phone re-test both devices, "feels done" sign-off, EAS production
   handoff.
 - **P4 remaining:** owner offline re-test after P3 on both phones, re-verify

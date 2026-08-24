@@ -50,7 +50,7 @@ Rule: only `verified:1` questions ever enter a study mode (drill / missed / mock
 - [x] Home stats + streak consistent and correct. *(SQL-driven: sessions/day streak + accuracy average; unchanged by P3 — tsc + bundle green.)*
 - [ ] Offline re-test passes after P3 changes (spaced-rep + bookmarks both read SQLite). *(owner — same script as before, now also: bookmark something, add a note, run a mock; airplane relaunch should keep everything.)*
 - [ ] Full flow re-verified on BOTH iOS and Android. *(owner — new surface since the last phone pass: Mock, Topics, Code, Bookmarks, fill-blank UI.)*
-- [x] `tasks/todo.md` updated to reflect shipped scope; `tasks/lessons.md` updated if anything new learned. *(STATUS section + success-criteria box in todo.md; 16 lessons in lessons.md — includes zombie-CDP-port (14), startExam re-entrancy (15), the fatal Metro FallbackWatcher tmpdir race (13, extended round 17), and shipped-artifact probes + no dead-end errors (16, round 21).)*
+- [x] `tasks/todo.md` updated to reflect shipped scope; `tasks/lessons.md` updated if anything new learned. *(STATUS section + success-criteria box in todo.md; 19 lessons in lessons.md — includes zombie-CDP-port (14), startExam re-entrancy (15), the fatal Metro FallbackWatcher tmpdir race (13, extended round 17), shipped-artifact probes + no dead-end errors (16, round 21), the web OPFS pool race (17), beforeunload-vs-pagehide (18), and VFS close re-arm (19, round 22).)*
 - [x] Production iOS (`.ipa`) / Android (`.aab`) build commands handed off (or built). *(PHONE-ONBOARDING.md §E + todo.md STATUS: `eas build --platform ios|android --profile production` after `eas login`.)*
 
 ## Sign-off
@@ -89,7 +89,15 @@ hard-navigation shapes end-to-end on BOTH :8081 and :8090
 straight on `/code` (fresh profile — the original dead-end), cold landing
 over an EXISTING database (new chrome process, same OPFS), and two
 consecutive hard `Page.reload` — all land the content list, seam
-`q=41 cs=12`, zero page errors. Remaining: owner's §C*
+`q=41 cs=12`, zero page errors. Also closed the SAME-DOCUMENT case
+(commit `9ad7cef`, lesson 19): close on a plain tab switch used to leave
+the worker's singleton pool VFS drained (capacity 0 → `cannot create
+file` on the very next screen load); close now re-arms the VFS (awaited
+release + re-acquisition of all six pool files, header associations
+restored), a scoped-cached `_wasmModule` fix removes an upstream
+undefined-module quirk, and the app-level probe proves
+close → `Database not found` → re-boot `q=41 cs=12` in the SAME document
+on BOTH servers. Remaining: owner's §C*
 web click-through (http://localhost:8081), C2 phone re-test both devices,
 "feels done", EAS handoff. Prior history: P4 consistency audit
 (`73e5c31`), Metro zombie-proofing (round 18), static-export artifact
