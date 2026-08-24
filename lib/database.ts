@@ -4,48 +4,78 @@ import { Question, QuestionAttempt, StudySession, CodeSection, TopicStats } from
 import { uid } from './uid';
 
 let db: SQLite.SQLiteDatabase;
-
 /**
- * Open the DB, retrying on the web full-page-navigation OPFS race.
+ * Module-level single-flight boot: RootLayout and each tab's load() all await
+ * the SAME promise instead of firing concurrent opens.
  *
- * On web, expo-sqlite runs wa-sqlite.wasm in a worker holding a File System
- * *sync access handle*. Chromium permits only ONE open sync handle per file
- * at a time, and a previous document's handle can still be open right after a
- * hard navigation even when no live query needs it → `openDatabaseAsync`
- * throws `NoModificationAllowedError` and the whole handle is orphaned
- * (every later query: `Invalid VFS state`). The stale handle releases within
- * a few hundred ms, so a bounded retry succeeds. Native (SQLite on disk)
- * never hits this and succeeds first try.
+ * Why boot can fail on web: expo-sqlite on web runs wa-sqlite in a web worker
+ * backed by `AccessHandlePoolVFS`, which keeps 6 OPFS sync access handles
+ * open for the worker's whole life. Chromium allows only one open sync
+ * handle per file at a time, so a hard full-page navigation (deep link, F5 on
+ * a non-home route, or a link out and back) can open the NEW document while
+ * the PREVIOUS document's worker still holds its handles →
+ * `createSyncAccessHandle` throws `NoModificationAllowedError`, and because
+ * the failure happens inside the worker's one-shot `AccessHandlePoolVFS.
+ * create()`, every later open in THAT document reports the confusing
+ * `Invalid VFS state`. The stale worker's handles die on GC (well within a
+ * few seconds), so a backoffed retry inside the same document recovers.
+ * Native (real SQLite files) has no handle pool and succeeds first try.
  */
-async function openWithRetry(): Promise<SQLite.SQLiteDatabase> {
-  const attempts = Platform.OS === 'web' ? 5 : 1;
-  let lastErr: unknown;
-  for (let i = 0; i < attempts; i++) {
-    try {
-      return await SQLite.openDatabaseAsync('plumber_prep_v3.db');
-    } catch (e) {
-      lastErr = e;
-      if (i === attempts - 1) break;
-      console.warn(`[plumber-db] open attempt ${i + 1} failed, retrying in 300ms`, e);
-      await new Promise((r) => setTimeout(r, 300));
-    }
+let bootPromise: Promise<SQLite.SQLiteDatabase> | null = null;
+
+function isWebPlatform(): boolean {
+  return Platform.OS === 'web';
+}
+
+function bootDatabase(): Promise<SQLite.SQLiteDatabase> {
+  if (!bootPromise) {
+    bootPromise = (async () => {
+      const web = isWebPlatform();
+      const maxAttempts = web ? 6 : 1;
+      let lastErr: unknown = null;
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        try {
+          if (!db) {
+            db = await SQLite.openDatabaseAsync('plumber_prep_v3.db');
+            // Test seam: expose the live handle BEFORE init so tools/
+            // (db-smoke, live-web-check) observe boot even when init errors.
+            // Set only when absent, so a later navigation's boot — even a
+            // failing one — never clobbers a still-live handle.
+            const scope = globalThis as Record<string, unknown>;
+            if (!scope['__plumberDb']) scope['__plumberDb'] = db;
+            await initializeDatabase(db);
+          }
+          return db;
+        } catch (e) {
+          lastErr = e;
+          if (!web || attempt === maxAttempts - 1) break;
+          if (web) {
+            // Discard the half-initialized handle so the next attempt opens
+            // fresh (expo-sqlite web opens a NEW worker+VFS per open; the old
+            // one's leaked handles die with it).
+            db = undefined;
+          }
+          console.warn(
+            `[plumber-db] boot attempt ${attempt + 1}/${maxAttempts} failed, retrying in 800ms`,
+            e
+          );
+          await new Promise((r) => setTimeout(r, 800));
+        }
+      }
+      throw lastErr;
+    })().catch((e) => {
+      // Release the latch so a later call — the "Load again" retry on any
+      // screen, a tab switch, a second root init — starts a FRESH boot past
+      // the (now likely freed) stale handles.
+      bootPromise = null;
+      throw e;
+    });
   }
-  throw lastErr;
+  return bootPromise;
 }
 
 export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
-  if (!db) {
-    db = await openWithRetry();
-    // Test seam: expose the live handle BEFORE initializeDatabase so tools/
-    // (db-smoke, live-web-check) can observe boot even if init threw. Set it
-    // only when absent so a later document's open — even one that later fails
-    // its own init — never clobbers the first live handle across a full-page
-    // navigation.
-    const globalScope = globalThis as Record<string, unknown>;
-    if (!globalScope['__plumberDb']) globalScope['__plumberDb'] = db;
-    await initializeDatabase(db);
-  }
-  return db;
+  return bootDatabase();
 }
 
 async function initializeDatabase(database: SQLite.SQLiteDatabase): Promise<void> {
