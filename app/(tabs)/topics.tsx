@@ -31,6 +31,7 @@ export default function TopicsScreen() {
   const load = useCallback(async () => {
     try {
       setError(null);
+      setLoaded(false);
       const s = await getTopicStats();
       setStats(s);
     } catch (e) {
@@ -86,6 +87,13 @@ export default function TopicsScreen() {
       {error && (
         <View style={styles.errorCard}>
           <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity
+            style={styles.retryBtn}
+            onPress={onRefresh}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.retryText}>Load again</Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -161,6 +169,8 @@ const styles = StyleSheet.create({
   cardHealth: { fontSize: 10, fontWeight: '700', marginTop: 10, letterSpacing: 1 },
   loading: { color: '#8892b0', fontSize: 14, textAlign: 'center', marginTop: 24 },
   empty: { color: '#8892b0', fontSize: 14, textAlign: 'center', marginTop: 24 },
-  errorCard: { backgroundColor: '#3a1b1b', borderRadius: 12, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: '#f44336' },
+  errorCard: { backgroundColor: '#3a1b1b', borderRadius: 12, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: '#f44336', alignItems: 'flex-start' },
   errorText: { color: '#f44336', fontSize: 14 },
+  retryBtn: { backgroundColor: '#4fc3f7', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 8, marginTop: 12 },
+  retryText: { color: '#1a1a2e', fontWeight: 'bold', fontSize: 14 },
 });

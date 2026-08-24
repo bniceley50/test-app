@@ -13,8 +13,16 @@ const os = require('os');
 const path = require('path');
 
 const CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-const PORT = 9242;
-const BASE = 'http://localhost:8081';
+const BASE = (process.env.LIVE_WEB_BASE || 'http://localhost:8081').replace(/\/$/, '');
+// Fresh CDP port per target server (zombie-proofing lesson: never reuse a port
+// that an old, killed run still holds). Default 9242 = the :8081 dev server;
+// use LIVE_WEB_CDP_PORT to point a second run at a different server.
+const PORT = Number(process.env.LIVE_WEB_CDP_PORT || 9242);
+const TAG = BASE.replace(/^https?:\/\//, '').split('/')[0] || 'unknown'; // host:port for evidence filenames
+// Evidence set per server: dev :8081 writes the 14-16 files; the static
+// export :8090 writes a fresh 17-19 set (a different artifact, don't clobber).
+const SHOT = ['14', '15', '16'];
+if (TAG.endsWith('8090')) { SHOT[0] = '17'; SHOT[1] = '18'; SHOT[2] = '19'; }
 const EV = path.join(__dirname, '..', 'tasks', 'evidence');
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -88,7 +96,7 @@ async function main() {
   const proc = spawn(CHROME, [
     '--remote-debugging-port=' + PORT, '--user-data-dir=' + profile,
     '--no-first-run', '--no-default-browser-check', '--window-size=1280,900',
-    'http://localhost:8081/',
+    BASE + '/',
   ], { stdio: 'ignore', detached: true });
   proc.unref();
   let ok = true;
@@ -149,13 +157,13 @@ async function main() {
       console.log('  diag: console errors =', await consoleDump());
     }
     ok = ok && homeOk;
-    console.log((homeOk ? 'PASS' : 'FAIL') + ' home live on :8081 — bank ' + (hasBank ? 'shown' : 'NOT shown') + ', seed ' + seed);
-    await shot('14-live-home-8081.png');
+    console.log((homeOk ? 'PASS' : 'FAIL') + ' home live on ' + TAG + ' — bank ' + (hasBank ? 'shown' : 'NOT shown') + ', seed ' + seed);
+    await shot(SHOT[0] + '-live-home-' + TAG + '.png');
 
     // --- routes must render their own content on the live server ---
     const probes = [
-      ['/code', /815KAR20/, '15-live-code-8081.png'],
-      ['/bookmarks', /No bookmarks yet|bookmark/i, '16-live-bookmarks-8081.png'],
+      ['/code', /815KAR20/, SHOT[1] + '-live-code-' + TAG + '.png'],
+      ['/bookmarks', /No bookmarks yet|bookmark/i, SHOT[2] + '-live-bookmarks-' + TAG + '.png'],
     ];
     for (const [route, re, file] of probes) {
       await cdpSend('Page.navigate', { url: BASE + route });
@@ -172,7 +180,7 @@ async function main() {
     try { proc.kill('SIGTERM'); } catch {}
     try { fs.rmSync(profile, { recursive: true, force: true }); } catch {}
   }
-  console.log(ok ? 'LIVE CHECK: OK — server on :8081 serves a live, seeded app' : 'LIVE CHECK: FAIL');
+  console.log(ok ? 'LIVE CHECK: OK — ' + TAG + ' serves a live, seeded app' : 'LIVE CHECK: FAIL');
   process.exit(ok ? 0 : 1);
 }
 main();

@@ -26,6 +26,7 @@ export default function CodeScreen() {
   const load = useCallback(async (q: string) => {
     try {
       setError(null);
+      setLoaded(false);
       const [secs, countsMap, bmMap] = await Promise.all([
         q.trim() ? searchCodeSections(q.trim()) : getAllCodeSections(),
         getQuestionCountsByCodeSection(),
@@ -115,11 +116,18 @@ export default function CodeScreen() {
       {error && (
         <View style={styles.errorCard}>
           <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity
+            style={styles.retryBtn}
+            onPress={onRefresh}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.retryText}>Load again</Text>
+          </TouchableOpacity>
         </View>
       )}
       {!loaded && <Text style={styles.loading}>Loading code sections...</Text>}
 
-      {loaded && sections.length === 0 && (
+      {loaded && !error && sections.length === 0 && (
         <View style={styles.emptyBox}>
           <Text style={styles.emptyTitle}>No matches</Text>
           <Text style={styles.emptyText}>
@@ -229,7 +237,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     marginBottom: 16,
   },
-  errorCard: { backgroundColor: '#3a1b1b', borderRadius: 12, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: '#f44336' },
+  errorCard: { backgroundColor: '#3a1b1b', borderRadius: 12, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: '#f44336', alignItems: 'flex-start' },
+  retryBtn: { backgroundColor: '#4fc3f7', borderRadius: 10, paddingHorizontal: 16, paddingVertical: 8, marginTop: 12 },
+  retryText: { color: '#1a1a2e', fontWeight: 'bold', fontSize: 14 },
   errorText: { color: '#f44336', fontSize: 14 },
   loading: { color: '#8892b0', fontSize: 14, textAlign: 'center', marginTop: 24 },
   emptyBox: {
