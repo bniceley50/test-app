@@ -70,6 +70,32 @@ Pass criteria for P1: steps 4–6 work with **zero** network access, on **both**
 phones, and nothing feels broken (no blank screens, no hanging spinners,
 no red error boxes).
 
+## C*. Your web click-through (do this first — ~10 min, no install)
+The web build is the same app, same SQLite, same screens. Browser to
+**http://localhost:8081** (dev server) — or any exported `dist/web` later.
+Gate: same behavior as the phone test, no phone involved.
+1. **Home** loads (no spinner stuck), shows your 41-question bank + streak
+   stats.
+2. **Drill** — start a 10-Q run, answer, get one wrong on purpose; the
+   answer card shows result + explanation; a **bookmark star** is there.
+3. **Missed** — the wrong question you just missed is in the list;
+   answering it correctly clears it.
+4. **Mock Exam (tab or Home card)** — start **25 questions**. Answer 3–4,
+   get one wrong, no feedback shown while answering. Use **Submit exam** on
+   the last question. Results: score vs the **80%** line, per-topic bars,
+   missed-review. (Skip the 75-min wait this time — auto-submit is
+   machine-proven; if you *do* want to wait, leave it alone.)
+5. **Topics tab** — 13-topic grid; colors reflect your scores; tap one →
+   topic drill.
+6. **Code tab** — search "090", expand a section, see its linked questions,
+   star a section (and a question).
+7. **Bookmarks tab** — the 2 starred items are listed; expand one, type a
+   note, leave the field (it saves). **Reload the page** → the note persists
+   (it's in SQLite, not memory).
+8. Refresh any screen once more — nothing blank, no red error cards.
+
+If that all feels right, phone §C2 should feel identical (same code).
+
 ## C2. P4 offline re-test (new screens, after the P3/P4 build)
 Repeat on **both** phones (iOS first). Everything you do in steps 1–5 should
 survive the airplane relaunch in step 7 — that's the gate.
