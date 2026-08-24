@@ -72,10 +72,23 @@ no red error boxes).
 
 ## C*. Your web click-through (do this first — ~10 min, no install)
 The web build is the same app, same SQLite, same screens. Browser to
-**http://localhost:8081** (dev server) — or any exported `dist/web` after
-`node tools/static-web.cjs` on port 8090 (proven 2026-08-24 to boot + seed
-separately from the dev server). Gate: same behavior as the phone test, no
-phone involved.
+**http://localhost:8081** (dev server) — or the exported build on port 8090
+via `node tools/static-web.cjs` (both proven 2026-08-24, round 22, after the
+web OPFS fix). Gate: same behavior as the phone test, no phone involved.
+
+> **Round 22 note — where this used to hurt and what to look for.** A hard
+> full-page navigation (typing a URL directly, opening a link from another
+> tab, or refreshing) used to occasionally dead-end on the web: the previous
+> page held the database file locks until Chromium's garbage collector
+> finished, and the new page reported a DB error with no recovery. That is
+> fixed — when a page leaves, the app now releases its database handles
+> immediately, so the incoming page boots clean. Worst case you may see the
+> splash for up to ~12 s longer than usual; a tab-error card (if one ever
+> appears) has **Load again**. One suggested extra check while you're here:
+> from Home, open **http://localhost:8081/code** in a *new* browser tab and
+> hard-refresh that tab twice — both should show the code list, not an error
+> card.
+
 1. **Home** loads (no spinner stuck), shows your 41-question bank + streak
    stats.
 2. **Drill** — start a 10-Q run, answer, get one wrong on purpose; the

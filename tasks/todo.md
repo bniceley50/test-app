@@ -68,7 +68,7 @@ Expo + React Native + TypeScript
 > `react-native-worklets` — see `package.json`. Metro config adds `wasm` to
 > `resolver.assetExts` for the expo-sqlite web worker (`metro.config.js`).
 
-## STATUS (shipped as of 2026-08-18, branch `claude/general-session-jCAfN`)
+## STATUS (shipped as of 2026-08-24, round 22, branch `claude/general-session-jCAfN`, commit `565d547`)
 - **P0 green:** deps pruned; web + iOS + Android Metro exports all resolve clean.
 - **P1 green:** `eas.json` (development/preview/production), app identity
   `com.brian.plumberprep` (provisional — change before first store build),
@@ -84,23 +84,25 @@ Expo + React Native + TypeScript
   case-insensitive, "1/2"≡"0.5"); spaced-rep due-queue blended to the TOP of
   Drill + Mock decks (`getDeckWithDue`); `bookmarks` table + Bookmarks tab
   (questions + code sections, editable notes, tap-through).
-- **P4 verifying (2026-08-24, branch `claude/general-session-jCAfN`, commit `1dff063`):**
-  web end-to-end re-proven on the shipped core — `node tools/e2e-chrome.cjs`
-  **30/30 gates PASS solo** (mock full cycle incl. per-topic breakdown, 50-Q
-  scaling to 41 Q / 123 min, drill full cycle + bookmark + note + SQLite
-  persistence across reload, due-queue LEAD, code search/star, fill-blank
-  "0.5"≡"1/2"), `node tools/e2e-autosubmit.cjs` **PASS on final code**
-  (75-min real countdown → "Time expired — exam was auto-submitted.", one DB
-  session closed at 75.0 min — hard DB-backed `dbOk`), and
-  `node tools/live-web-check.cjs` **PASS** (the running :8081 dev server boots
-  + seeds the real app: home, /code, /bookmarks). Fixes since the last green
-  anchor: drill/missed `startDrill` session-id mismatch (sessions never closed
-  on disk), a `startExam` double-press re-entrancy guard, the Code Reference
-  `verified=1` fetch/count consistency gap, wa-sqlite-safe E2E SQL, and a
-  root-anchored Metro `resolver.blockList` that stops the fatal FallbackWatcher
-  tmpdir crash. Remaining: owner's §C* web click-through (http://localhost:8081),
-  C2 phone re-test on both devices, "feels done" sign-off, EAS production
-  handoff.
+- **P4 web full-page-nav DB race fixed (round 22, the last green anchor):**
+  expo-sqlite's web backend holds six OPFS sync-access handles for the whole
+  worker's life and Chromium allows only ONE per file, so after a hard
+  navigation the dying document's worker kept the pool locked until GC.
+  Three-part web-only fix: (1) `vendor/expo-sqlite-web/worker.ts` vendored +
+  postinstall script — `closeDatabase` releases pool handles when the last db
+  closes, `maybeInitAsync` retries on next open after partial VFS failure;
+  (2) root `_layout.tsx` closes the db (web only) on whichever of pagehide /
+  visibilitychange / beforeunload fires first — CDP-style hard navigation
+  fires `beforeunload`, not `pagehide`; (3) `lib/database.ts` web-only boot
+  retry (10 attempts, ≤ ~11.6 s worst case, native still one attempt).
+  Proven on the committed tree: warm full-page nav (home → navigated `/code`)
+  lands `815KAR20`, seam `q=41 cs=12`, zero page errors, close fired in both
+  leaving docs; close-path probe shows the worker really releases ("Database
+  not found" right after `closeAsync`); **30-gate suite ALL STEPS PASSED**;
+  live checks PASS on :8081 and :8090 (evidence 14–19 re-screenshotted, which
+  also cleared the 0-byte ADS strays off those names). Remaining: owner's §C*
+  web click-through (http://localhost:8081), C2 phone re-test both devices,
+  "feels done" sign-off, EAS production handoff.
 - **P4 remaining:** owner offline re-test after P3 on both phones, re-verify
   flows, EAS production handoff (`eas build --platform ios|android --profile
   production`), and this doc's sign-off box below.

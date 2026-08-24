@@ -86,6 +86,19 @@
   3. Gate rendering states in order — `loading` → `error` → `empty` → content: while `error` is active, suppress the empty list ("No matches against a broken fetch is a lie") and re-arm the loading indicator when a retry starts.
 - **Date**: 2026-08-24
 
+### 17. [web] One open `FileSystemSyncAccessHandle` per file — the web OPFS pool race
+- **Pattern**: expo-sqlite's web backend keeps every SQLite file in a pool of 6 OPFS files, each opened with a `FileSystemSyncAccessHandle` held for the whole worker's life. Chromium allows exactly ONE open sync handle (or writable stream) per file. After a hard full-page navigation the previous document — garbage but not yet GC'd — still owns those handles, so the new document's pool-VFS create fails (`NoModificationAllowedError`) and, unpatched, the failure strands `maybeInitAsync` with `_sqlite3` set / `_vfs` null → sticky "Invalid VFS state" for the new document's *entire* life (retrying within the same doc never recovers). App-side retry alone (boot v2–v4) only won once Chrome GC'd the old doc (observed > 6.4 s), which is why those generations all still failed the home→`/code` full-page-nav repro.
+- **Rule**:
+  1. Release the pool handles *deterministically* in the outgoing document: the worker's `closeDatabase` calls `vfs.close()` when `databaseIdMap.size === 0`, and the app calls it (web only) from the page-hidden events. A `console.log` in that path is worth its weight in gold for proving the release actually ran — a CDP console buffer spanning N documents otherwise gives "looks patched / looks unpatched" ambiguity.
+  2. Keep `#acquireAccessHandles` **throw-on-blocked** (the blocked file may be the actual DB — skipping it would re-create fresh pool files and silently lose data); retry-after-release is the safe recovery, with the web-only boot retry (≤ ~11.6 s worst case, under the root splash) as safety net.
+  3. Verify a *vendor patch* in the built bundle by its **string literals** — terser strips comments and mangles names, so grep the minified chunk for a unique `console.log`/`Error` message, not patch comments or identifiers.
+- **Date**: 2026-08-24
+
+### 18. [testing] On hard navigation, `beforeunload` fires — `pagehide` often does not
+- **Pattern**: The close-on-navigate hook existed only as a `pagehide` listener; the diagnostic showed no close fired on CDP `Page.navigate`, yet a direct `closeAsync()` call from the page context worked perfectly (probe: `closed-ok` → "Database not found"). On Chromium hard navigation, `beforeunload` fires on the still-alive document while `pagehide` lands as the process is already tearing down.
+- **Rule**: Register the release across `pagehide`, `visibilitychange(hidden)`, AND `beforeunload`, with a **first-wins latch** (`if (closed) return`) so the third is a no-op after the first wins. One `pagehide` listener is not enough — always test against CDP hard navigation specifically: it is the least event-generous case a real user can hit.
+- **Date**: 2026-08-24
+
 ## Format
 Each lesson should include:
 - **Category tag**: [auth], [db], [testing], [ui], [infra], [content], [expo], [navigation]

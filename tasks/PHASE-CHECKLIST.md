@@ -59,32 +59,35 @@ Rule: only `verified:1` questions ever enter a study mode (drill / missed / mock
 - [ ] Fully offline on a real phone (airplane mode), iOS + Android. *(P1 pass pre-P3; P3 re-test outstanding with the owner.)*
 - [ ] Owner runs one full study cycle on their phone and confirms it "feels done."
 
-**STATUS (2026-08-24, round 21):** every gate green on the final code —
-web E2E **30/30 solo** (`tools/e2e-chrome.cjs`) + auto-submit **re-proven on
-final code** (`tools/e2e-autosubmit.cjs`, hard DB-backed: exactly one mock
-session, completed at 75.0 min) + **live-server proof**
-(`tools/live-web-check.cjs`: the running :8081 dev server boots and seeds the
-real app — home `q=41`, `/code`, `/bookmarks` render; evidence
-14/15/16). Round 17: P4
-consistency audit (verified=1 fetch/count agreement + unified states).
-Round 18: **Metro zombie-proofing** — the long-lived dev server now ignores
-`tools/`, `tasks/`, `dist/` via a root-anchored `resolver.blockList` pattern
-(the fatal FallbackWatcher tmpdir crashes, lesson 13 ×2, root-caused and
-closed — first unanchored attempt over-blocked `node_modules/*/dist` and broke
-web resolution, caught + fixed same round). Branch pushed to origin.
-Round 21: **static-export artifact proven standalone** — `dist/` re-exported on
-the final tree and booted through a plain static HTTP server
-(`node tools/static-web.cjs` → :8090, no Metro, no Expo runtime): home seeds
-`q=41` in OPFS, `/code` + `/bookmarks` render (evidence
-17/18/19); the probe's first run caught a **real UX defect a cold full-page
-navigation of `/code` hits** — its `Promise.all` load can lose the
-first-hard-load race and the old error card was a dead end (no retry) that
-even rendered the "No matches" empty state on top of it. Fixed on all three
-tabs (`code`/`topics`/`bookmarks`): error card now carries **Load again**, the
-empty state suppresses while an error is active, and a load re-arms the
-loading indicator. Lesson 16 added.
-Remaining: owner's §C* web click-through (http://localhost:8081), C2 phone
-re-test both devices, "feels done", EAS handoff.
+**STATUS (2026-08-24, round 22):** the web full-page-navigation DB race is
+**fixed and proven on the committed tree** — expo-sqlite's web backend holds
+six OPFS sync-access handles per file for the whole worker's life, and Chromium
+allows only ONE per file, so after a hard navigation the dying document's
+worker kept the pool locked until Chrome GC'd it (sticky "Invalid VFS state"
+in the new doc). Three-part fix, all web-only:
+1. `vendor/expo-sqlite-web/worker.ts` (vendored + postinstall script in
+   `scripts/`) — `closeDatabase` releases the pool VFS's sync handles when the
+   last db closes; `maybeInitAsync` no longer poisons the worker on a partial
+   VFS failure (next open retries).
+2. `app/_layout.tsx` — on **pagehide OR visibilitychange OR beforeunload**
+   (whichever fires first; CDP hard navigation fires `beforeunload`, not
+   `pagehide`) the web root closes the db → deterministic handle release
+   before the incoming document's worker starts.
+3. `lib/database.ts` — web-only boot retry (10 attempts, ≤ ~11.6 s worst case
+   under the root splash) as the safety net; native stays one attempt.
+Proven end-to-end on the committed tree (`565d547`): warm full-page nav
+(home → `Page.navigate` /code) lands `815KAR20` with seam `q=41 cs=12`,
+zero page errors, close fired in both leaving docs
+(`tools/_diag-code.cjs` on :8090 static); close-path probe proves
+`closeAsync` → "Database not found" (worker really released;
+`tools/_diag-close-probe.cjs`); **30-gate suite ALL STEPS PASSED on :8081**;
+live checks PASS on both :8081 (evidence 14/15/16) and :8090
+(evidence 17/18/19, re-screenshotted this round — also resolved the
+0-byte ADS strays that had clung to those names). Remaining: owner's §C*
+web click-through (http://localhost:8081), C2 phone re-test both devices,
+"feels done", EAS handoff. Prior history: P4 consistency audit
+(`73e5c31`), Metro zombie-proofing (round 18), static-export artifact
+proven standalone (round 21, Load-again everywhere).
 
 **P4 consistency audit (round 17, `73e5c31`):**
 - **`verified=1` in every study-fetch path.** Re-verified all 7 question fetches
