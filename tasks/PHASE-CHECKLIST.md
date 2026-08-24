@@ -57,3 +57,14 @@ Rule: only `verified:1` questions ever enter a study mode (drill / missed / mock
 - [ ] All screens working: Home, Drill, Missed, Mock, Topics, Code Reference, Bookmarks. *(code + bundle-verified all 3 targets 2026-08-18; awaiting owner's phone pass on the new screens.)*
 - [ ] Fully offline on a real phone (airplane mode), iOS + Android. *(P1 pass pre-P3; P3 re-test outstanding with the owner.)*
 - [ ] Owner runs one full study cycle on their phone and confirms it "feels done."
+
+**STATUS (2026-08-24, commit `f04daf2`):** every gate green on the final code —
+web E2E **30/30 solo** (`tools/e2e-chrome.cjs`) + auto-submit **re-proven on
+final code** (`tools/e2e-autosubmit.cjs`, hard DB-backed: exactly one mock
+session, completed at 75.0 min). Real fixes since the last green anchor:
+`startDrill` session-id mismatch (drill/missed sessions never closed in
+SQLite — new DB closure gate 1/1), `startExam` re-entrancy guard (double-press
+orphan row), E2E gates hardened (stable bookmark-persist sampling, missed-card
+level-probe + re-injection, wa-sqlite-safe CASE-SUM). Remaining: owner's web
+click-through (http://localhost:8081, server live), C2 phone re-test both
+devices, "feels done", EAS handoff.
