@@ -139,14 +139,6 @@ export async function seedCodeSections(sections: CodeSection[]): Promise<void> {
   }
 }
 
-export async function getDrillQuestions(count: number = 10): Promise<Question[]> {
-  const db = await getDatabase();
-  const rows = await db.getAllAsync<any>(
-    `SELECT * FROM questions WHERE verified = 1 ORDER BY RANDOM() LIMIT ?`, count
-  );
-  return rows.map(parseQuestionRow);
-}
-
 /**
  * Spaced-rep blended deck (locked decision: due items go to the TOP of every
  * deck, not a separate entry). Due = `next_review <= now`; ordered most
@@ -198,14 +190,6 @@ export async function getActiveMissedQuestions(): Promise<Question[]> {
      INNER JOIN user_progress p ON q.id = p.question_id
      WHERE p.missed_active = 1
      ORDER BY p.last_seen ASC`
-  );
-  return rows.map(parseQuestionRow);
-}
-
-export async function getMockExamQuestions(count: number = 50): Promise<Question[]> {
-  const db = await getDatabase();
-  const rows = await db.getAllAsync<any>(
-    `SELECT * FROM questions WHERE verified = 1 ORDER BY RANDOM() LIMIT ?`, count
   );
   return rows.map(parseQuestionRow);
 }

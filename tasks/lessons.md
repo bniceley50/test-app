@@ -24,7 +24,7 @@
 
 ### 5. [ui] Study modes must filter `verified = 1` at the query, not the UI
 - **Pattern**: The seed contract says only verified KY content ships, but the guarantee only means something if every deck-builder query enforces it. A UI-side filter is one refactor away from leaking drafts.
-- **Rule**: Put `WHERE verified = 1` in each deck query (`getDrillQuestions`, `getTopicQuestions`, `getDeckWithDue`, `getMockExamQuestions`…); the UI can then be content-agnostic.
+- **Rule**: Put `WHERE verified = 1` in each deck query (`getDeckWithDue`, `getTopicQuestions`, and the other study-fetch exports in `lib/database.ts`; the pre-rename `getDrillQuestions`/`getMockExamQuestions` carried it before being superseded by `getDeckWithDue` and pruned in `2e6606d`+); the UI can then be content-agnostic.
 - **Date**: 2026-08-18
 
 ### 6. [infra] Don't run two `expo export`s against the same `dist/` at once
