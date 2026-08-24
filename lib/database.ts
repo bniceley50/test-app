@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import { Question, QuestionAttempt, StudySession, CodeSection, TopicStats } from './types';
 import { uid } from './uid';
 
-let db: SQLite.SQLiteDatabase;
+let db: SQLite.SQLiteDatabase | undefined;
 /**
  * Module-level single-flight boot: RootLayout and each tab's load() all await
  * the SAME promise instead of firing concurrent opens.
@@ -33,6 +33,7 @@ function bootDatabase(): Promise<SQLite.SQLiteDatabase> {
       const web = isWebPlatform();
       const maxAttempts = web ? 6 : 1;
       let lastErr: unknown = null;
+      let resolved: SQLite.SQLiteDatabase | undefined;
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
         try {
           if (!db) {
@@ -45,7 +46,7 @@ function bootDatabase(): Promise<SQLite.SQLiteDatabase> {
             if (!scope['__plumberDb']) scope['__plumberDb'] = db;
             await initializeDatabase(db);
           }
-          return db;
+          resolved = db;
         } catch (e) {
           lastErr = e;
           if (!web || attempt === maxAttempts - 1) break;
@@ -62,6 +63,7 @@ function bootDatabase(): Promise<SQLite.SQLiteDatabase> {
           await new Promise((r) => setTimeout(r, 800));
         }
       }
+      if (resolved) return resolved;
       throw lastErr;
     })().catch((e) => {
       // Release the latch so a later call — the "Load again" retry on any
