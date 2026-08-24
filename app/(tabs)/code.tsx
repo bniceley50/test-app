@@ -22,8 +22,17 @@ export default function CodeScreen() {
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [bookmarks, setBookmarks] = useState<Map<string, unknown>>(new Map());
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Coalesce loads per query: useFocusEffect + the debounced effect can both
+  // fire load('') on mount → two concurrent cold OPFS inits race and one
+  // throws (the web first-hard-load flake). Track the in-flight query so an
+  // identical pending load is skipped and a stale result never stamps over a
+  // newer one.
+  const inFlight = useRef<string | null>(null);
 
   const load = useCallback(async (q: string) => {
+    if (inFlight.current === q) return; // same query already in flight
+    inFlight.current = q;
+    const token = q;
     try {
       setError(null);
       setLoaded(false);
@@ -32,14 +41,15 @@ export default function CodeScreen() {
         getQuestionCountsByCodeSection(),
         getBookmarkMap(),
       ]);
+      if (inFlight.current !== token) return; // a newer query superseded us
       setSections(secs);
       setCounts(Object.fromEntries(countsMap));
       setBookmarks(bmMap);
     } catch (e) {
       console.error('Error loading code sections:', e);
-      setError('Could not load code sections.');
+      if (inFlight.current === token) setError('Could not load code sections.');
     } finally {
-      setLoaded(true);
+      if (inFlight.current === token) { inFlight.current = null; setLoaded(true); }
     }
   }, []);
 

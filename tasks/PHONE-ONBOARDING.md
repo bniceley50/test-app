@@ -72,8 +72,10 @@ no red error boxes).
 
 ## C*. Your web click-through (do this first — ~10 min, no install)
 The web build is the same app, same SQLite, same screens. Browser to
-**http://localhost:8081** (dev server) — or any exported `dist/web` later.
-Gate: same behavior as the phone test, no phone involved.
+**http://localhost:8081** (dev server) — or any exported `dist/web` after
+`node tools/static-web.cjs` on port 8090 (proven 2026-08-24 to boot + seed
+separately from the dev server). Gate: same behavior as the phone test, no
+phone involved.
 1. **Home** loads (no spinner stuck), shows your 41-question bank + streak
    stats.
 2. **Drill** — start a 10-Q run, answer, get one wrong on purpose; the
@@ -92,7 +94,10 @@ Gate: same behavior as the phone test, no phone involved.
 7. **Bookmarks tab** — the 2 starred items are listed; expand one, type a
    note, leave the field (it saves). **Reload the page** → the note persists
    (it's in SQLite, not memory).
-8. Refresh any screen once more — nothing blank, no red error cards.
+8. Refresh any screen once more — nothing blank, no red error cards. If an
+   error card *does* appear it carries a **Load again** button (every tab has
+   one since the 2026-08-24 static-export probe); tap it once and report the
+   original if it returns.
 
 If that all feels right, phone §C2 should feel identical (same code).
 

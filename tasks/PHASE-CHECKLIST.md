@@ -45,12 +45,12 @@ Rule: only `verified:1` questions ever enter a study mode (drill / missed / mock
 - [x] Bookmark buttons on drill answer card, code-section detail, and question view. *(drill answer card star + Code Reference per-section and per-question stars, all → `bookmarks` table, 2026-08-18)*
 
 ## Phase 4 — Quality & ship
-- [x] Unified loading / empty / error states across all screens. *(2026-08-18: Home stats error card; Drill + Missed error + "Try again"; Topics/Code/Bookmarks have error + empty + refresh; Mock has its own load error + setup; all data reads are local SQLite — no network anywhere. Round 17: re-audited screen-by-screen — full results in the P4 consistency audit above.)*
+- [x] Unified loading / empty / error states across all screens. *(2026-08-18: Home stats error card; Drill + Missed error + "Try again"; Topics/Code/Bookmarks have error + empty + refresh; Mock has its own load error + setup; all data reads are local SQLite — no network anywhere. Round 17: re-audited screen-by-screen — full results in the P4 consistency audit above. Round 21: tab screens' error cards were dead ends on web (full-page navigations, no focus-driven reload); Probed via static export (tools/static-web.cjs) — a first-hard-load Promise.all race on /code failed with no retry and the empty state rendered over the error. Fixed: Load-again retry on /code /topics /bookmarks error cards, error suppresses the empty state, load re-arms loading indicator.)*
 - [x] Web end-to-end verification (all screens + a full Mock Exam cycle). *(2026-08-23, extended three times: `node tools/e2e-chrome.cjs` — real Chrome over CDP, fresh profile (exercises first-boot seeding), pointer-event taps, CDP `Input.insertText` for typing (RN-web controlled TextInput ignores synthetic events — lessons #10/#11/#12). 30/30 gates pass: home render + 41-Q seed; mock setup → live exam → answer/advance with no feedback → submit → per-topic results; **mock time scaling verified numerically — 50-Q mode on the 41-Q bank draws 41 Q with a 123-min countdown, setup states "41 Q / 123 min"**; home stats update after mock; bookmarks empty state; full 10-Q Drill to Results; bookmark star from drill answer card; bookmark entry expands; note typed + saved on blur (📝 hint); FRESH RELOAD → app reboots clean and study stats + bookmark + note persist in sqlite; **spaced-rep due-queue live-proven: a 7-day-overdue question (backdated via the `__plumberDb` test seam) is served FIRST in the Drill deck**; Missed via home card; Topics grid; **Topics tap → topic-filtered drill deck (law_licensing → 1/9)**; Code list + 090 expansion; **Code search typing filters list** ("storm" → only 20:130, others drop out); **Code section star → listed on Bookmarks as a CODE SECTION entry** (the non-question kind); **Fill-in-the-blank live-verified via seam-injected verified fill_blank (due, so it leads the deck): the type-in UI renders and typing "0.5" grades CORRECT vs stored "1/2" — the normalized numeric match**. Screenshots `01`–`11` + `13` in tasks/evidence/. Plus `tools/e2e-autosubmit.cjs`: a STANDALONE run that starts a 25-Q/75-min mock and waits the real countdown to zero untouched — proves auto-submit end-to-end (banner + results after ~75 min, evidence `12-mock-autosubmit.png`).)*
 - [x] Home stats + streak consistent and correct. *(SQL-driven: sessions/day streak + accuracy average; unchanged by P3 — tsc + bundle green.)*
 - [ ] Offline re-test passes after P3 changes (spaced-rep + bookmarks both read SQLite). *(owner — same script as before, now also: bookmark something, add a note, run a mock; airplane relaunch should keep everything.)*
 - [ ] Full flow re-verified on BOTH iOS and Android. *(owner — new surface since the last phone pass: Mock, Topics, Code, Bookmarks, fill-blank UI.)*
-- [x] `tasks/todo.md` updated to reflect shipped scope; `tasks/lessons.md` updated if anything new learned. *(STATUS section + success-criteria box in todo.md; 15 lessons in lessons.md — includes zombie-CDP-port (14), startExam re-entrancy (15), and the fatal Metro FallbackWatcher tmpdir race (13, extended round 17).)*
+- [x] `tasks/todo.md` updated to reflect shipped scope; `tasks/lessons.md` updated if anything new learned. *(STATUS section + success-criteria box in todo.md; 16 lessons in lessons.md — includes zombie-CDP-port (14), startExam re-entrancy (15), the fatal Metro FallbackWatcher tmpdir race (13, extended round 17), and shipped-artifact probes + no dead-end errors (16, round 21).)*
 - [x] Production iOS (`.ipa`) / Android (`.aab`) build commands handed off (or built). *(PHONE-ONBOARDING.md §E + todo.md STATUS: `eas build --platform ios|android --profile production` after `eas login`.)*
 
 ## Sign-off
@@ -59,7 +59,7 @@ Rule: only `verified:1` questions ever enter a study mode (drill / missed / mock
 - [ ] Fully offline on a real phone (airplane mode), iOS + Android. *(P1 pass pre-P3; P3 re-test outstanding with the owner.)*
 - [ ] Owner runs one full study cycle on their phone and confirms it "feels done."
 
-**STATUS (2026-08-24, commit `1dff063`):** every gate green on the final code —
+**STATUS (2026-08-24, round 21):** every gate green on the final code —
 web E2E **30/30 solo** (`tools/e2e-chrome.cjs`) + auto-submit **re-proven on
 final code** (`tools/e2e-autosubmit.cjs`, hard DB-backed: exactly one mock
 session, completed at 75.0 min) + **live-server proof**
@@ -72,6 +72,17 @@ Round 18: **Metro zombie-proofing** — the long-lived dev server now ignores
 (the fatal FallbackWatcher tmpdir crashes, lesson 13 ×2, root-caused and
 closed — first unanchored attempt over-blocked `node_modules/*/dist` and broke
 web resolution, caught + fixed same round). Branch pushed to origin.
+Round 21: **static-export artifact proven standalone** — `dist/` re-exported on
+the final tree and booted through a plain static HTTP server
+(`node tools/static-web.cjs` → :8090, no Metro, no Expo runtime): home seeds
+`q=41` in OPFS, `/code` + `/bookmarks` render (evidence
+17/18/19); the probe's first run caught a **real UX defect a cold full-page
+navigation of `/code` hits** — its `Promise.all` load can lose the
+first-hard-load race and the old error card was a dead end (no retry) that
+even rendered the "No matches" empty state on top of it. Fixed on all three
+tabs (`code`/`topics`/`bookmarks`): error card now carries **Load again**, the
+empty state suppresses while an error is active, and a load re-arms the
+loading indicator. Lesson 16 added.
 Remaining: owner's §C* web click-through (http://localhost:8081), C2 phone
 re-test both devices, "feels done", EAS handoff.
 

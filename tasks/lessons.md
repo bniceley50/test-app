@@ -78,6 +78,14 @@
 - **Rule**: Use a `useRef` boolean (`startingRef`) set to `true` before the first `await` in `startExam` and reset in `finally`; early-return if already true. The existing `onPress={() => !loading && startExam(m)}` guard is asynchronous — both event handlers fire before the re-render — so it doesn't close the race on its own.
 - **Date**: 2026-08-24
 
+### 16. [testing] Prove the shipped artifact, not just the dev server — and never ship a dead-end error
+- **Pattern**: Every green check in this project ran against Metro's dev server (`expo start --web`). The `dist/web` export was re-exported but never *booted as itself* — and booting it through a plain static HTTP server (`node tools/static-web.cjs`) on the same code, the first full-page navigation of `/code` hit a `Promise.all` first-hard-load race. The resulting state was worse than one bug: the error card had **no retry** (dead end — on web a full-page navigation has no focus/refresh hook to auto-recover, unlike native), and the **"No matches" empty state rendered simultaneously** with the error (`loaded === true` + `sections === []` after a caught load), actively contradicting it.
+- **Rule**:
+  1. Give every artifact shape a boot probe: dev server for iteration, **exported artifact through a plain static server** for the shipping claim — parameterize the render check with `LIVE_WEB_BASE` (and `LIVE_WEB_CDP_PORT`, or zombie-CDP lesson 14 bites).
+  2. On web, **every `error` state needs an explicit retry control** (`Load again` → the screen's own `onRefresh`); tab screens got this on 2026-08-24 (`code`/`topics`/`bookmarks`), matching `drill`/`missed`'s existing "Try again".
+  3. Gate rendering states in order — `loading` → `error` → `empty` → content: while `error` is active, suppress the empty list ("No matches against a broken fetch is a lie") and re-arm the loading indicator when a retry starts.
+- **Date**: 2026-08-24
+
 ## Format
 Each lesson should include:
 - **Category tag**: [auth], [db], [testing], [ui], [infra], [content], [expo], [navigation]

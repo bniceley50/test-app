@@ -18,7 +18,10 @@ const BASE = (process.env.LIVE_WEB_BASE || 'http://localhost:8081').replace(/\/$
 // that an old, killed run still holds). Default 9242 = the :8081 dev server;
 // use LIVE_WEB_CDP_PORT to point a second run at a different server.
 const PORT = Number(process.env.LIVE_WEB_CDP_PORT || 9242);
-const TAG = BASE.replace(/^https?:\/\//, '').split('/')[0] || 'unknown'; // host:port for evidence filenames
+const TAG = BASE.replace(/^https?:\/\//, '').split('/')[0] || 'unknown'; // host:port for logs
+// Windows CreateFile treats ':' as an alternate-data-stream separator, so any
+// ':' in a filename (e.g. "localhost:8081") splits the entry — use the port only.
+const FS = TAG.includes(':') ? TAG.split(':').pop() : TAG;
 // Evidence set per server: dev :8081 writes the 14-16 files; the static
 // export :8090 writes a fresh 17-19 set (a different artifact, don't clobber).
 const SHOT = ['14', '15', '16'];
@@ -158,12 +161,12 @@ async function main() {
     }
     ok = ok && homeOk;
     console.log((homeOk ? 'PASS' : 'FAIL') + ' home live on ' + TAG + ' — bank ' + (hasBank ? 'shown' : 'NOT shown') + ', seed ' + seed);
-    await shot(SHOT[0] + '-live-home-' + TAG + '.png');
+    await shot(SHOT[0] + '-live-home-' + FS + '.png');
 
     // --- routes must render their own content on the live server ---
     const probes = [
-      ['/code', /815KAR20/, SHOT[1] + '-live-code-' + TAG + '.png'],
-      ['/bookmarks', /No bookmarks yet|bookmark/i, SHOT[2] + '-live-bookmarks-' + TAG + '.png'],
+      ['/code', /815KAR20/, SHOT[1] + '-live-code-' + FS + '.png'],
+      ['/bookmarks', /No bookmarks yet|bookmark/i, SHOT[2] + '-live-bookmarks-' + FS + '.png'],
     ];
     for (const [route, re, file] of probes) {
       await cdpSend('Page.navigate', { url: BASE + route });
