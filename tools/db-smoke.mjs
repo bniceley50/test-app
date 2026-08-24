@@ -222,7 +222,23 @@ function recordAttempt(qid, selected, isCorrect, sessionId) {
   check('section->questions: 12 rows for 815KAR20:090', qs === 12);
 }
 
-// --- F. Normalize matching ---
+// --- F. Code-section question fetch must respect verified=1 (P4 audit) ---
+{
+  db.prepare(`INSERT OR IGNORE INTO questions
+    (id, prompt, type, choices, answer, explanation, foreman_explanation,
+     code_section, topic, difficulty, tags, source, verified)
+    VALUES ('unver-smoke', 'smoke unverified', 'mcq', '[]', 'x', '', '',
+            '815KAR20:090', 'VENTING', 1, '[]', '', 0)`).run();
+  const withFilter = db.prepare(`SELECT COUNT(*) AS n FROM questions
+    WHERE code_section = '815KAR20:090' AND verified = 1`).get().n;
+  const withoutFilter = db.prepare(`SELECT COUNT(*) AS n FROM questions
+    WHERE code_section = '815KAR20:090'`).get().n;
+  check('section->questions: verified=1 filter hides unverified rows (count query agrees)',
+    withFilter === 12 && withoutFilter === 13);
+  db.prepare(`DELETE FROM questions WHERE id='unver-smoke'`).run();
+}
+
+// --- G. Normalize matching ---
 {
   check('normalize: "1/2" matches "0.5"', answerMatches('1/2', '0.5'));
   check('normalize: case + whitespace normalized', answerMatches('Half inch', '  half   INCH '));
@@ -232,7 +248,7 @@ function recordAttempt(qid, selected, isCorrect, sessionId) {
   check('normalize: (alt) notation accepted', answerMatches('1/2 (4) in', '1/2 in'));
 }
 
-// --- G. Heat-grid SQL sanity: every one of the 13 seeded topics appears ---
+// --- H. Heat-grid SQL sanity: every one of the 13 seeded topics appears ---
 {
   const topics = db.prepare('SELECT DISTINCT topic FROM questions WHERE verified=1 ORDER BY topic').all().map(r => r.topic);
   check('heat-grid: 13 distinct seeded topics', topics.length === 13);

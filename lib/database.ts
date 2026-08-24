@@ -401,7 +401,7 @@ function parseCodeSectionRow(row: any): CodeSection {
 export async function getQuestionsForCodeSection(sectionRef: string): Promise<Question[]> {
   const db = await getDatabase();
   const rows = await db.getAllAsync<any>(
-    `SELECT * FROM questions WHERE code_section = ?`, sectionRef
+    `SELECT * FROM questions WHERE code_section = ? AND verified = 1`, sectionRef
   );
   return rows.map(parseQuestionRow);
 }
