@@ -31,7 +31,11 @@ function bootDatabase(): Promise<SQLite.SQLiteDatabase> {
   if (!bootPromise) {
     bootPromise = (async () => {
       const web = isWebPlatform();
-      const maxAttempts = web ? 6 : 1;
+      // A full-page navigation leaves the previous document's worker holding
+      // its 6 OPFS sync handles until that document is GC'd, which Chrome
+      // defers several seconds. 8 attempts at 800ms ≈ 6.4s worst case covers
+      // that; healthy boots (the norm, incl. all of native) run once.
+      const maxAttempts = web ? 8 : 1;
       let lastErr: unknown = null;
       let resolved: SQLite.SQLiteDatabase | undefined;
       for (let attempt = 0; attempt < maxAttempts; attempt++) {

@@ -2,87 +2,29 @@ target: http://localhost:8090/code
 navigated to home; waiting for Drill...
 home ready: true (KY Plumber Prep0Day Streak0%Accuracy0StudiedStart Drill10 questions, ~5 minutes�)
 navigated to /code; waiting...
-BODY: "Code ReferenceCould not load code sections.Load again🏠🏠Home📊📊Topics⭐⭐Bookmarks📖📖Code\n"
-SEAM: "no-seam"
-CONSOLE (28):
+BODY: "Code Reference815KAR2Administrative Regulations (815 KAR Chapter 2)Administrative procedures for plumbing regulation in Kentucky including p"
+SEAM: "q=41 cs=12"
+CONSOLE (9):
   | Database ready with 41 questions
-  | [plumber-db] open attempt 1 failed, retrying in 300ms Error: NoModificationAllowedError: Failed to execute 'createSyncAccessHandle' on 'FileSystemFileHandle': Access Handles cannot be created if there is another open Access Handle or Writable stream associated with the same file.
-    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/
-  | [plumber-db] open attempt 2 failed, retrying in 300ms Error: Error: Invalid VFS state
-    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:906:602)
-    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:905:600)
-  | [plumber-db] open attempt 3 failed, retrying in 300ms Error: Error: Invalid VFS state
-    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:906:602)
-    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:905:600)
-  | [plumber-db] open attempt 4 failed, retrying in 300ms Error: Error: Invalid VFS state
-    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:906:602)
-    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:905:600)
+  | [plumber-db] boot attempt 1/6 failed, retrying in 800ms Error: NoModificationAllowedError: Failed to execute 'createSyncAccessHandle' on 'FileSystemFileHandle': Access Handles cannot be created if there is another open Access Handle or Writable stream associated with the same file.
+    at e.workerMessageHandler (http://localhost:8090/_expo/static/j
+  | [plumber-db] boot attempt 2/6 failed, retrying in 800ms Error: Error: Invalid VFS state
+    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-5e5078f5281aada2e1ecd833b3290ada.js:903:602)
+    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-5e5078f5281aada2e1ecd833b3290ada.js:902:600)
+  | [plumber-db] boot attempt 3/6 failed, retrying in 800ms Error: Error: Invalid VFS state
+    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-5e5078f5281aada2e1ecd833b3290ada.js:903:602)
+    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-5e5078f5281aada2e1ecd833b3290ada.js:902:600)
+  | [plumber-db] boot attempt 4/6 failed, retrying in 800ms Error: Error: Invalid VFS state
+    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-5e5078f5281aada2e1ecd833b3290ada.js:903:602)
+    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-5e5078f5281aada2e1ecd833b3290ada.js:902:600)
+  | [plumber-db] boot attempt 5/6 failed, retrying in 800ms Error: Error: Invalid VFS state
+    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-5e5078f5281aada2e1ecd833b3290ada.js:903:602)
+    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-5e5078f5281aada2e1ecd833b3290ada.js:902:600)
   | Database init error: Error: Error: Invalid VFS state
-    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:906:602)
-    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:905:600)
-  | [plumber-db] open attempt 1 failed, retrying in 300ms Error: Error: Invalid VFS state
-    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:906:602)
-    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:905:600)
-  | [plumber-db] open attempt 1 failed, retrying in 300ms Error: Error: Invalid VFS state
-    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:906:602)
-    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:905:600)
-  | [plumber-db] open attempt 2 failed, retrying in 300ms Error: Error: Invalid VFS state
-    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:906:602)
-    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:905:600)
-  | [plumber-db] open attempt 2 failed, retrying in 300ms Error: Error: Invalid VFS state
-    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:906:602)
-    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:905:600)
-  | [plumber-db] open attempt 1 failed, retrying in 300ms Error: NoModificationAllowedError: Failed to execute 'createSyncAccessHandle' on 'FileSystemFileHandle': Access Handles cannot be created if there is another open Access Handle or Writable stream associated with the same file.
-    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/
-  | [plumber-db] open attempt 2 failed, retrying in 300ms Error: Error: Invalid VFS state
-    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:906:602)
-    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:905:600)
-  | [plumber-db] open attempt 3 failed, retrying in 300ms Error: Error: Invalid VFS state
-    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:906:602)
-    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:905:600)
-  | [plumber-db] open attempt 4 failed, retrying in 300ms Error: Error: Invalid VFS state
-    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:906:602)
-    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:905:600)
-  | Database init error: Error: Error: Invalid VFS state
-    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:906:602)
-    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:905:600)
-  | [plumber-db] open attempt 1 failed, retrying in 300ms Error: Error: Invalid VFS state
-    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:906:602)
-    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:905:600)
-  | [plumber-db] open attempt 1 failed, retrying in 300ms Error: Error: Invalid VFS state
-    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:906:602)
-    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:905:600)
-  | [plumber-db] open attempt 1 failed, retrying in 300ms Error: Error: Invalid VFS state
-    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:906:602)
-    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:905:600)
-  | [plumber-db] open attempt 2 failed, retrying in 300ms Error: Error: Invalid VFS state
-    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:906:602)
-    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:905:600)
-  | [plumber-db] open attempt 2 failed, retrying in 300ms Error: Error: Invalid VFS state
-    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:906:602)
-    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:905:600)
-  | [plumber-db] open attempt 2 failed, retrying in 300ms Error: Error: Invalid VFS state
-    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:906:602)
-    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:905:600)
-  | [plumber-db] open attempt 3 failed, retrying in 300ms Error: Error: Invalid VFS state
-    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:906:602)
-    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:905:600)
-  | [plumber-db] open attempt 3 failed, retrying in 300ms Error: Error: Invalid VFS state
-    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:906:602)
-    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:905:600)
-  | [plumber-db] open attempt 3 failed, retrying in 300ms Error: Error: Invalid VFS state
-    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:906:602)
-    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:905:600)
-  | [plumber-db] open attempt 4 failed, retrying in 300ms Error: Error: Invalid VFS state
-    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:906:602)
-    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:905:600)
-  | [plumber-db] open attempt 4 failed, retrying in 300ms Error: Error: Invalid VFS state
-    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:906:602)
-    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:905:600)
-  | [plumber-db] open attempt 4 failed, retrying in 300ms Error: Error: Invalid VFS state
-    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:906:602)
-    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:905:600)
-  | Error loading code sections: Error: Error: Invalid VFS state
-    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:906:602)
-    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-060b0ce48f415b379c811544bdb65eae.js:905:600)
+    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-5e5078f5281aada2e1ecd833b3290ada.js:903:602)
+    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-5e5078f5281aada2e1ecd833b3290ada.js:902:600)
+  | [plumber-db] boot attempt 1/6 failed, retrying in 800ms Error: Error: Invalid VFS state
+    at e.workerMessageHandler (http://localhost:8090/_expo/static/js/web/entry-5e5078f5281aada2e1ecd833b3290ada.js:903:602)
+    at Worker.<anonymous> (http://localhost:8090/_expo/static/js/web/entry-5e5078f5281aada2e1ecd833b3290ada.js:902:600)
+  | Database ready with 41 questions
 PAGEDERRS (0):
