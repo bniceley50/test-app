@@ -68,7 +68,7 @@ Expo + React Native + TypeScript
 > `react-native-worklets` — see `package.json`. Metro config adds `wasm` to
 > `resolver.assetExts` for the expo-sqlite web worker (`metro.config.js`).
 
-## STATUS (shipped as of 2026-08-24, round 22, branch `claude/general-session-jCAfN`, commit `565d547`)
+## STATUS (shipped as of 2026-08-24, round 23, branch `claude/general-session-jCAfN`, commit `f53aa74`)
 - **P0 green:** deps pruned; web + iOS + Android Metro exports all resolve clean.
 - **P1 green:** `eas.json` (development/preview/production), app identity
   `com.brian.plumberprep` (provisional — change before first store build),
@@ -103,7 +103,13 @@ Expo + React Native + TypeScript
   landing over an existing DB (new process, same OPFS), and two consecutive
   hard reloads; same-document close/tab-switch also closed on commit
   `9ad7cef` (VFS re-acquire; probe: close → re-boot `q=41 cs=12`, lesson
-  19). Remaining: owner's §C* web click-through (http://localhost:8081),
+  19). **Round 24 (artifact proof, `f53aa74`): the full 30-gate
+  click-through also passed against the exported static build itself**
+  (`E2E_BASE` → static-web on :8090, evidence `art-*.png`), not only Metro —
+  so the deployable artifact and the dev server are proven identically
+  end-to-end (lesson 16); a final untouched 75-min auto-submit on the same
+  artifact is being collected as the last machine gate. Remaining:
+  owner's §C* web click-through (http://localhost:8081),
   C2 phone re-test both devices, "feels done" sign-off, EAS production
   handoff.
 - **P4 remaining:** owner offline re-test after P3 on both phones, re-verify

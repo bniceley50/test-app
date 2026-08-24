@@ -99,8 +99,18 @@ undefined-module quirk, and the app-level probe proves
 close → `Database not found` → re-boot `q=41 cs=12` in the SAME document
 on BOTH servers. Remaining: owner's §C*
 web click-through (http://localhost:8081), C2 phone re-test both devices,
-"feels done", EAS handoff. Prior history: P4 consistency audit
-(`73e5c31`), Metro zombie-proofing (round 18), static-export artifact
+"feels done", EAS handoff.
+
+**Round 23 (this round, `f53aa74`):** the shipped-artifact claim that round
+22 left open is now closed — the ENTIRE 30-gate click-through (home/seed,
+full mock cycle incl. 50-Q scaling, drill + bookmark + note, persistence
+across reload, missed, topics tap-to-drill, code search/star, fill-blank
+normalized match) passed **against the exported static build itself**
+(`E2E_BASE` → static-web on :8090; evidence `art-*.png`), so the dev server
+and the deployable artifact are now proven identically end-to-end. A final
+untouched 75-min auto-submit on the same artifact is in flight (lesson 16:
+prove the artifact, not just the dev server). Prior history: P4 consistency
+audit (`73e5c31`), Metro zombie-proofing (round 18), static-export artifact
 proven standalone (round 21, Load-again everywhere).
 
 **P4 consistency audit (round 17, `73e5c31`):**

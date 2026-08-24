@@ -91,6 +91,14 @@ web OPFS fix). Gate: same behavior as the phone test, no phone involved.
 > version of the same: from Home, open **http://localhost:8081/code** in a
 > *new* browser tab and hard-refresh that tab twice — both should show the
 > code list, not an error card.
+>
+> **Round 23 note — the full click-through is now proven on the export.**
+> The machine suite (30-gate click-through: home/seed, full mock cycle,
+> drill + bookmark + note, persistence across reload, missed, topics, code
+> search/star, fill-blank) has been run against the *exported static build*
+> itself (evidence `art-*.png`) — not only the Metro dev server — so what you
+> do in your browser is what ships. An untouched 25-Q exam left to run to
+> zero on that build re-confirms the 75:00 auto-submit.
 
 1. **Home** loads (no spinner stuck), shows your 41-question bank + streak
    stats.
