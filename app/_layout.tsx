@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { getDatabase, seedQuestions, seedCodeSections, getQuestionCount } from '@/lib/database';
+import { getDatabase, closeDatabase, seedQuestions, seedCodeSections, getQuestionCount } from '@/lib/database';
 
 const questionData = require('@/data/questions.seed.json');
 const codeSectionData = require('@/data/code_sections.seed.json');
@@ -30,6 +31,19 @@ export default function RootLayout() {
       }
     }
     init();
+  }, []);
+
+  // Web only: on a full-page navigation (deep link, reload, leaving the site)
+  // release this document's OPFS pool handles NOW instead of leaving them
+  // locked until Chrome GCs the dying worker — that was the source of the
+  // "Invalid VFS state" dead-end on hard navigation to any route.
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+    const onHide = () => {
+      closeDatabase().catch((e) => console.warn('closeDatabase on pagehide:', e));
+    };
+    window.addEventListener('pagehide', onHide);
+    return () => window.removeEventListener('pagehide', onHide);
   }, []);
 
   if (!ready) return null;

@@ -19,7 +19,7 @@ const CDP = 9244;
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 (async () => {
-  const hardTimer = setTimeout(() => { log('=== HARD-TIMEOUT dump'); process.exit(3); }, 55000);
+  const hardTimer = setTimeout(() => { log('=== HARD-TIMEOUT dump'); process.exit(3); }, 90000);
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'chrome-diag-'));
   const proc = spawn(CHROME, [
     '--remote-debugging-port=' + CDP, '--user-data-dir=' + profile,

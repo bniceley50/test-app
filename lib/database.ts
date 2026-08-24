@@ -27,44 +27,47 @@ function isWebPlatform(): boolean {
   return Platform.OS === 'web';
 }
 
+// Escalating backoff (seconds) between web boot attempts. Total ≈ 11.6s —
+// deliberately longer than the observed ~10s that Chrome holds a garbage
+// previous document's worker before its OPFS sync handles are released.
+const WEB_BOOT_RETRY_MS = [800, 800, 1000, 1000, 1500, 1500, 2000, 2000, 2000];
+const WEB_BOOT_MAX_ATTEMPTS = WEB_BOOT_RETRY_MS.length + 1;
+
 function bootDatabase(): Promise<SQLite.SQLiteDatabase> {
   if (!bootPromise) {
     bootPromise = (async () => {
       const web = isWebPlatform();
-      // A full-page navigation leaves the previous document's worker holding
-      // its 6 OPFS sync handles until that document is GC'd, which Chrome
-      // defers several seconds. 8 attempts at 800ms ≈ 6.4s worst case covers
-      // that; healthy boots (the norm, incl. all of native) run once.
-      const maxAttempts = web ? 8 : 1;
+      const maxAttempts = web ? WEB_BOOT_MAX_ATTEMPTS : 1;
       let lastErr: unknown = null;
       let resolved: SQLite.SQLiteDatabase | undefined;
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
         try {
           if (!db) {
             db = await SQLite.openDatabaseAsync('plumber_prep_v3.db');
-            // Test seam: expose the live handle BEFORE init so tools/
-            // (db-smoke, live-web-check) observe boot even when init errors.
-            // Set only when absent, so a later navigation's boot — even a
-            // failing one — never clobbers a still-live handle.
+            // Test seam: expose the LIVE handle (set right after a successful
+            // open) so tools (db-smoke, live-web-check) observe the working
+            // DB. Set only when absent → a later full-page navigation's boot,
+            // even a failing one, never clobbers a still-live handle.
             const scope = globalThis as Record<string, unknown>;
             if (!scope['__plumberDb']) scope['__plumberDb'] = db;
             await initializeDatabase(db);
           }
           resolved = db;
+          break;
         } catch (e) {
           lastErr = e;
           if (!web || attempt === maxAttempts - 1) break;
           if (web) {
             // Discard the half-initialized handle so the next attempt opens
-            // fresh (expo-sqlite web opens a NEW worker+VFS per open; the old
-            // one's leaked handles die with it).
+            // FRESH (expo-sqlite web stands up a new worker + VFS per
+            // openDatabaseAsync; a failed attempt's VFS never registers).
             db = undefined;
           }
           console.warn(
-            `[plumber-db] boot attempt ${attempt + 1}/${maxAttempts} failed, retrying in 800ms`,
+            `[plumber-db] boot attempt ${attempt + 1}/${maxAttempts} failed, retrying in ${WEB_BOOT_RETRY_MS[attempt]}ms`,
             e
           );
-          await new Promise((r) => setTimeout(r, 800));
+          await new Promise((r) => setTimeout(r, WEB_BOOT_RETRY_MS[attempt]));
         }
       }
       if (resolved) return resolved;
@@ -82,6 +85,25 @@ function bootDatabase(): Promise<SQLite.SQLiteDatabase> {
 
 export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
   return bootDatabase();
+}
+
+/**
+ * Relinquish the DB and, on web, release expo-sqlite's 6 OPFS sync access
+ * handles held by this document's worker. Called from the root layout on
+ * `pagehide` so that a hard full-page navigation (deep link, reload, leaving
+ * the site) hands the pool files back to the incoming document WITHOUT
+ * waiting for Chrome to garbage-collect this one. No-op-safe on native.
+ */
+export async function closeDatabase(): Promise<void> {
+  if (db) {
+    try {
+      await db.closeAsync();
+    } catch {
+      // best-effort teardown at page-hide time
+    }
+    db = undefined;
+  }
+  bootPromise = null;
 }
 
 async function initializeDatabase(database: SQLite.SQLiteDatabase): Promise<void> {
