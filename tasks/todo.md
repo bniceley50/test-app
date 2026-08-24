@@ -84,18 +84,23 @@ Expo + React Native + TypeScript
   case-insensitive, "1/2"≡"0.5"); spaced-rep due-queue blended to the TOP of
   Drill + Mock decks (`getDeckWithDue`); `bookmarks` table + Bookmarks tab
   (questions + code sections, editable notes, tap-through).
-- **P4 verifying (2026-08-24, branch `claude/general-session-jCAfN`, commit `f04daf2`):**
+- **P4 verifying (2026-08-24, branch `claude/general-session-jCAfN`, commit `ef5ffe4`):**
   web end-to-end re-proven on the shipped core — `node tools/e2e-chrome.cjs`
   **30/30 gates PASS solo** (mock full cycle incl. per-topic breakdown, 50-Q
   scaling to 41 Q / 123 min, drill full cycle + bookmark + note + SQLite
   persistence across reload, due-queue LEAD, code search/star, fill-blank
-  "0.5"≡"1/2") and `node tools/e2e-autosubmit.cjs` **PASS again on final code**
-  (75-min real countdown, "Time expired — exam was auto-submitted.", DB row
-  completed at 75.0 min — hard DB-backed requirement). Two real fixes landed:
-  drill/missed `startDrill` session-id mismatch (sessions never closed on
-  disk) and a `startExam` double-press re-entrancy guard. Remaining: owner's
-  web click-through (server at http://localhost:8081), C2 phone re-test on
-  both devices, "feels done" sign-off, EAS production handoff.
+  "0.5"≡"1/2"), `node tools/e2e-autosubmit.cjs` **PASS on final code**
+  (75-min real countdown → "Time expired — exam was auto-submitted.", one DB
+  session closed at 75.0 min — hard DB-backed `dbOk`), and
+  `node tools/live-web-check.cjs` **PASS** (the running :8081 dev server boots
+  + seeds the real app: home, /code, /bookmarks). Fixes since the last green
+  anchor: drill/missed `startDrill` session-id mismatch (sessions never closed
+  on disk), a `startExam` double-press re-entrancy guard, the Code Reference
+  `verified=1` fetch/count consistency gap, wa-sqlite-safe E2E SQL, and a
+  root-anchored Metro `resolver.blockList` that stops the fatal FallbackWatcher
+  tmpdir crash. Remaining: owner's §C* web click-through (http://localhost:8081),
+  C2 phone re-test on both devices, "feels done" sign-off, EAS production
+  handoff.
 - **P4 remaining:** owner offline re-test after P3 on both phones, re-verify
   flows, EAS production handoff (`eas build --platform ios|android --profile
   production`), and this doc's sign-off box below.
