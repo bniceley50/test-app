@@ -9,6 +9,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const { overallStats, setOverallStats } = useAppStore();
   const [missedCount, setMissedCount] = useState(0);
+  const [statsError, setStatsError] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -21,13 +22,23 @@ export default function HomeScreen() {
       const [stats, missed] = await Promise.all([getOverallStats(), getMissedCount()]);
       setOverallStats(stats);
       setMissedCount(missed);
+      setStatsError(false);
     } catch (e) {
       console.error('Error loading stats:', e);
+      setStatsError(true);
     }
   }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {statsError && (
+        <View style={styles.errorCard}>
+          <Text style={styles.errorText}>
+            Could not load your stats — fully close and reopen the app to retry.
+          </Text>
+        </View>
+      )}
+
       {/* Streak & Quick Stats */}
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
@@ -68,11 +79,15 @@ export default function HomeScreen() {
           </Text>
         </TouchableOpacity>
 
-        <View style={[styles.actionCard, styles.actionCardDisabled]}>
+        <TouchableOpacity
+          style={styles.actionCard}
+          onPress={() => router.push('/mock')}
+          activeOpacity={0.8}
+        >
           <Text style={styles.actionIcon}>📝</Text>
           <Text style={styles.actionTitle}>Mock Exam</Text>
-          <Text style={styles.actionSub}>Coming soon</Text>
-        </View>
+          <Text style={styles.actionSub}>25 or 50 Q · timed · 80% pass</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Progress Bar */}
@@ -118,6 +133,19 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
     paddingBottom: 40,
+  },
+  errorCard: {
+    backgroundColor: '#3a1b1b',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#f44336',
+  },
+  errorText: {
+    color: '#f44336',
+    fontSize: 13,
+    lineHeight: 18,
   },
   statsRow: {
     flexDirection: 'row',

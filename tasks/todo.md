@@ -62,6 +62,71 @@ Expo + React Native + TypeScript
 - **NativeWind**: Fast styling without boilerplate. You know Tailwind-like patterns.
 - **zustand**: Minimal state management. No Redux bloat.
 
+> **Stack note (2026-08-18, P0):** NativeWind + Tailwind ended up unused (screens
+> use raw `StyleSheet` with the `#16213e` / `#1a1a2e` / `#4fc3f7` palette) and were
+> removed along with `uuid` (local `lib/uid.ts`), `react-native-reanimated`, and
+> `react-native-worklets` — see `package.json`. Metro config adds `wasm` to
+> `resolver.assetExts` for the expo-sqlite web worker (`metro.config.js`).
+
+## STATUS (shipped as of 2026-08-24, round 23, branch `claude/general-session-jCAfN`, commit `f53aa74`)
+- **P0 green:** deps pruned; web + iOS + Android Metro exports all resolve clean.
+- **P1 green:** `eas.json` (development/preview/production), app identity
+  `com.brian.plumberprep` (provisional — change before first store build),
+  core confirmed on a real iPhone + Android via Expo Go, incl. airplane mode
+  (steps: `tasks/PHONE-ONBOARDING.md`).
+- **P2 shipped:** Mock Exam (`app/mock.tsx` — 25 Q/75 min, 50 Q/150 min pace;
+  timer, auto-submit, no mid-exam feedback, per-topic breakdown, 80% pass),
+  Topics heat grid (`(tabs)/topics.tsx`), Code Reference
+  (`(tabs)/code.tsx` — search, expandable, section→questions, bookmarks).
+  The bank is 41 verified Q, so the 50-Q exam runs 41 Q at the same 3 min/Q
+  pace (123 min) with a visible note until content grows.
+- **P3 shipped:** fill-in-the-blank UI + `lib/normalize.ts` grading (trim,
+  case-insensitive, "1/2"≡"0.5"); spaced-rep due-queue blended to the TOP of
+  Drill + Mock decks (`getDeckWithDue`); `bookmarks` table + Bookmarks tab
+  (questions + code sections, editable notes, tap-through).
+- **P4 web full-page-nav DB race fixed (round 22, the last green anchor):**
+  expo-sqlite's web backend holds six OPFS sync-access handles for the whole
+  worker's life and Chromium allows only ONE per file, so after a hard
+  navigation the dying document's worker kept the pool locked until GC.
+  Three-part web-only fix: (1) `vendor/expo-sqlite-web/worker.ts` vendored +
+  postinstall script — `closeDatabase` releases pool handles when the last db
+  closes, `maybeInitAsync` retries on next open after partial VFS failure;
+  (2) root `_layout.tsx` closes the db (web only) on whichever of pagehide /
+  visibilitychange / beforeunload fires first — CDP-style hard navigation
+  fires `beforeunload`, not `pagehide`; (3) `lib/database.ts` web-only boot
+  retry (10 attempts, ≤ ~11.6 s worst case, native still one attempt).
+  Proven on the committed tree: warm full-page nav (home → navigated `/code`)
+  lands `815KAR20`, seam `q=41 cs=12`, zero page errors, close fired in both
+  leaving docs; the four hard-navigation shapes then closed end-to-end on
+  BOTH :8081 and :8090 (`tools/_diag-cold-reload.cjs`, evidence `20`–`23`):
+  cold landing on `/code` (fresh profile — the original dead-end), cold
+  landing over an existing DB (new process, same OPFS), and two consecutive
+  hard reloads; same-document close/tab-switch also closed on commit
+  `9ad7cef` (VFS re-acquire; probe: close → re-boot `q=41 cs=12`, lesson
+  19). **Round 24 (artifact proof, `f53aa74`): the full 30-gate
+  click-through also passed against the exported static build itself**
+  (`E2E_BASE` → static-web on :8090, evidence `art-*.png`), not only Metro —
+  so the deployable artifact and the dev server are proven identically
+  end-to-end (lesson 16); the final untouched 75-min auto-submit on the
+  same exported artifact has PASSED (301 polls, "Time expired — exam was
+  auto-submitted.", DB row closed at 75.0 min). Remaining:
+  owner's §C* web click-through (http://localhost:8081),
+  C2 phone re-test both devices, "feels done" sign-off, EAS production
+  handoff.
+- **P4 remaining:** owner offline re-test after P3 on both phones, re-verify
+  flows, EAS production handoff (`eas build --platform ios|android --profile
+  production`), and this doc's sign-off box below.
+
+### Status: success criteria
+- [x] App launches on iOS via Expo Go (and Android)
+- [x] Can complete a 10-question drill with instant feedback
+- [x] Wrong answers appear in Missed Mode
+- [ ] Mock exam times and scores correctly — **code complete, owner phone pass pending**
+- [x] Topic dashboard shows accuracy heat map
+- [x] Code sections searchable and linked to questions
+- [x] Works fully offline (airplane mode test) — **P1 pass; P3 re-test pending**
+- [ ] 200+ seed questions across all major topics — **41 verified shipped; growth is a content task, UI is ready**
+
 ### Data Model
 
 ```

@@ -17,6 +17,96 @@
 - **Rule**: The first meaningful commit should include the core data schema + minimum viable seed data, not empty scaffolding.
 - **Date**: 2026-02-28
 
+### 4. [expo] Metro web needs `wasm` in `resolver.assetExts` for expo-sqlite
+- **Pattern**: `npx expo export --platform web` failed with "Unable to resolve module ./wa-sqlite/wa-sqlite.wasm from node_modules/expo-sqlite/web/worker.ts" — native (iOS/Android) exports built fine, so it hid until the web target was tested.
+- **Rule**: Any expo package that imports a WASM binary as an asset URL (expo-sqlite's web worker) needs a small `metro.config.js` that pushes `'wasm'` onto the default `config.resolver.assetExts`. Add it the day you add the package; verify with web export, not just native.
+- **Date**: 2026-08-18
+
+### 5. [ui] Study modes must filter `verified = 1` at the query, not the UI
+- **Pattern**: The seed contract says only verified KY content ships, but the guarantee only means something if every deck-builder query enforces it. A UI-side filter is one refactor away from leaking drafts.
+- **Rule**: Put `WHERE verified = 1` in each deck query (`getDeckWithDue`, `getTopicQuestions`, and the other study-fetch exports in `lib/database.ts`; the pre-rename `getDrillQuestions`/`getMockExamQuestions` carried it before being superseded by `getDeckWithDue` and pruned in `2e6606d`+); the UI can then be content-agnostic.
+- **Date**: 2026-08-18
+
+### 6. [infra] Don't run two `expo export`s against the same `dist/` at once
+- **Pattern**: Exporting web and ios/android as two parallel background jobs raced on `dist/`; one died with `EPERM: operation not permitted, rmdir 'dist/_expo/static/js'` even though the bundle compiles fine.
+- **Rule**: Export all platforms in ONE command (`npx expo export --platform web --platform ios --platform android`) or serialize them; treat a mid-write `EPERM rmdir` as a race, not a code error.
+- **Date**: 2026-08-18
+
+### 7. [db] SQLite UNIQUE treats NULLs as distinct — use `''` sentinels for optional refs
+- **Pattern**: A `bookmarks` row stores either a question OR a code-section ref. With `UNIQUE(kind, question_id, code_section_id)` and nullable columns, SQLite's "NULL is distinct" rule let duplicate rows slip through.
+- **Rule**: For nullable multi-value unique keys, make the columns `NOT NULL` with an empty-string sentinel for the unused column (and drop the FKs, since `''` would violate them), then enforce the "one ref must be set" rule app-side.
+- **Date**: 2026-08-18
+
+### 8. [testing] Reproduce the app DB in a smoke script so logic is testable without a phone
+- **Pattern**: Deck-building, spaced-rep, and bookmark logic only ran "in the field" (phone), so bugs (code search missing the `section` column, normalize() paren handling, stale timer closure) could sit undetected or get caught only by the owner.
+- **Rule**: Keep `tools/db-smoke.mjs` (Node `node:sqlite` + the real seed JSON, replicating `initializeDatabase`'s schema and the deck/bookmark queries). Every DB/normalize change gets re-run against it (`node tools/db-smoke.mjs`) before anything ships to a phone; it currently covers seeding, due-queue ordering, progress upserts, bookmark uniqueness, section counts/search, and normalize() matching.
+- **Date**: 2026-08-18
+
+### 9. [expo] Typed-routes can break latent template components after the route set changes
+- **Pattern**: The template `components/ExternalLink.tsx` typed `href` as plain `string`; it compiled while the route set was small, but once the app grew to 13 routes, typedRoutes regenerated `.expo/types/router.d.ts` and `string` no longer fit the `Link` href union — tsc only caught it after the route set changed, not when the file was "written".
+- **Rule**: After adding/removing routes, always run a full `npx tsc --noEmit`; when a template helper needs a plain-string href, keep the `href: string` API and cast once at the `<Link>` boundary instead of fighting the union.
+- **Date**: 2026-08-18
+
+### 10. [web] RN-web Alert.alert is a silent no-op — gate it per platform
+- **Pattern**: Mock Exam's "Submit exam" on web did nothing: `react-native-web` implements `Alert.alert` as an empty static method, so tapping the button on the last question silently swallowed the submit (the exam phase persisted indefinitely). E2E (tools/e2e-chrome.cjs) proved it only after the app reached "25/25, Submit exam" and never left.
+- **Rule**: Never rely on `Alert` for web. In `mock.tsx` the handler is now `if (Platform.OS === 'web') { submitExam(false); return; }` before the native `Alert.alert(...)`. Note the trap I nearly shipped: referencing `Platform` without importing it throws only at tap-time (`ReferenceError` inside `onPress`), invisible until a real tap.
+- **Date**: 2026-08-23
+
+### 11. [testing] Headless Chrome (--dump-dom) is a unreliable web-hang detector — use real Chrome over CDP
+- **Pattern**: The web app "failed to boot" in every headless probe: virtual-time dumps and real-time dumps both showed an empty `#root`, yet a real Chrome window rendered Home in seconds. Root cause of the false positives: (a) `--virtual-time-budget` fast-forwards timers while OPFS File-System-Access promises don't resolve in time, and (b) a virtual-time page dump can outlive the React commit. The worker, wasm asset, and OPFS were all fine (proven with isolated probe pages: fetch 200, wasm instantiate OK, OPFS create OK in real Chrome).
+- **Rule**: Verify web with `tools/e2e-chrome.cjs` — real Chrome (non-headless) driven over CDP (`--remote-debugging-port=9223`), fresh `--user-data-dir` per run (empty OPFS → exercises first-boot seeding), pointer-event taps (RN-web hit-tests `pointerup` against the touchable), and a `waitFor(predicate, timeout)` loop on `document.body.innerText`. Screenshots land in `tasks/evidence/`. Reserve headless `--dump-dom` for "does the server answer 200" checks, not "did React mount".
+- **Date**: 2026-08-23
+
+### 12. [testing] React-controlled RN-web TextInput ignores synthetic `input` events — type via CDP `Input.insertText`
+- **Pattern**: Typing into the bookmark note field from a CDP script "failed": setting `el.value` with the native setter + dispatching `input`/`InputEvent` updated the DOM value and the event even reached React's root listener, yet `onChangeText` never fired and the value reverted on re-render. RN-web's controlled TextInput only commits text through the browser's real insertion path.
+- **Rule**: In `tools/e2e-chrome.cjs`, `__focusInput()` focuses the field and CDP `Input.insertText` does the typing (what a real user is, for React). Same family of trap as lesson 11: the probe that "types" must be as real as the user it emulates.
+- **Date**: 2026-08-23
+
+### 13. [infra] Metro's file watcher dies when a hidden edit-temp dir vanishes mid-scan (Windows)
+- **Pattern**: The web dev server (pwsh background job) crashed outright with `Error: ENOENT/EPERM: watch 'D:\test-app\…\.PHASE-CHECKLIST.md.<pid>.<guid>.tmpdir'` from `metro-file-map/src/watchers/FallbackWatcher`. Every file edit the harness performs creates a hidden `.NAME.<pid>.<uuid>.tmpdir` next to the file; Metro's fallback walker races the dir-creation, fails to `watch()` it after it's renamed away, and the whole Metro process throws (uncaught), silently killing `expo start`. Symptoms: app was fine mid-E2E, then every later `waitFor` times out at ECONNREFUSED.
+- **Rule**: If the web server job (or any long `expo start`) dies with an uncaught `FSWatcher` error after files were created/edited, don't chase app code — restart the server and treat it as a watcher race. Keep dev-server jobs separate from edit-heavy phases when possible; the E2E run itself is the smoke test that the server is alive.
+- **Fatal variant (2026-08-24, round 17)**: this same race can outright KILL `expo start` — git's Windows COW edit writes a `.PHASE-CHECKLIST.md.<pid>.<uuid>.tmpdir`, FallbackWatcher hits ENOENT on it and the exception is uncaught, so the long-running web server (owner's click-through target) dies mid-gate-run. Practically: finish any doc edits AND commit them BEFORE restarting the dev server, so the tmpdir churn happens while Metro is not watching.
+- **Date**: 2026-08-23
+
+### 14. [testing] A killed node driver does NOT kill its detached Chrome — a stale CDP port silently re-targets you
+- **Pattern**: `tools/e2e-autosubmit.cjs` spawns Chrome with `detached: true`. Killing the node job leaves the Chrome (renderers reparent to init) holding the `--remote-debugging-port`. The next run re-fetched `http://127.0.0.1:9231/json/list`, grabbed the *first* `type==='page'` target — the **zombie's** exam tab, not its own freshly-spawned Chrome. Result: the run reported a "pass/fail" from a different tab, the real Chrome's profile held two identical start-timestamp mock rows but zero `question_attempts`, and the countdown drifted because the driver was navigating a tab in a different browser.
+- **Rule**: Before reusing a CDP port, kill any `chrome.exe` whose command line contains the temp prefix (`chrome-auto-*`) — note that a PowerShell regex class must include the backslash or it matches nothing. Prefer an incrementing port; log the `mkdtemp` profile basename and each poll's `pageUrl` so cross-wiring is loud. `tools/opfs-sql.cjs` can post-mortem any profile's OPFS blob (wa-sqlite stores the SQLite after a 4 KB header block, so a naive "file starts with `SQLite`" check misses it).
+- **Date**: 2026-08-24
+
+### 15. [ui] `startExam` needs a synchronous re-entrancy guard
+- **Pattern**: Two fast presses (or a synthesized pointer-event chain) can both read `loading === false` — `setLoading(true)` hasn't painted yet — and each call `createSession()`, leaving an orphaned `mock_exam` row with `completed_at IS NULL` forever. The `onPress={() => loading && startExam(m)}`-style guard is asynchronous and doesn't close the race.
+- **Rule**: Use a `useRef` boolean (`startingRef`) set to `true` before the first `await` in `startExam` and reset in `finally`; early-return if already true. The existing `onPress={() => !loading && startExam(m)}` guard is asynchronous — both event handlers fire before the re-render — so it doesn't close the race on its own.
+- **Date**: 2026-08-24
+
+### 16. [testing] Prove the shipped artifact, not just the dev server — and never ship a dead-end error
+- **Pattern**: Every green check in this project ran against Metro's dev server (`expo start --web`). The `dist/web` export was re-exported but never *booted as itself* — and booting it through a plain static HTTP server (`node tools/static-web.cjs`) on the same code, the first full-page navigation of `/code` hit a `Promise.all` first-hard-load race. The resulting state was worse than one bug: the error card had **no retry** (dead end — on web a full-page navigation has no focus/refresh hook to auto-recover, unlike native), and the **"No matches" empty state rendered simultaneously** with the error (`loaded === true` + `sections === []` after a caught load), actively contradicting it.
+- **Rule**:
+  1. Give every artifact shape a boot probe: dev server for iteration, **exported artifact through a plain static server** for the shipping claim — parameterize the render check with `LIVE_WEB_BASE` (and `LIVE_WEB_CDP_PORT`, or zombie-CDP lesson 14 bites).
+  2. On web, **every `error` state needs an explicit retry control** (`Load again` → the screen's own `onRefresh`); tab screens got this on 2026-08-24 (`code`/`topics`/`bookmarks`), matching `drill`/`missed`'s existing "Try again".
+  3. Gate rendering states in order — `loading` → `error` → `empty` → content: while `error` is active, suppress the empty list ("No matches against a broken fetch is a lie") and re-arm the loading indicator when a retry starts.
+- **Date**: 2026-08-24
+
+### 17. [web] One open `FileSystemSyncAccessHandle` per file — the web OPFS pool race
+- **Pattern**: expo-sqlite's web backend keeps every SQLite file in a pool of 6 OPFS files, each opened with a `FileSystemSyncAccessHandle` held for the whole worker's life. Chromium allows exactly ONE open sync handle (or writable stream) per file. After a hard full-page navigation the previous document — garbage but not yet GC'd — still owns those handles, so the new document's pool-VFS create fails (`NoModificationAllowedError`) and, unpatched, the failure strands `maybeInitAsync` with `_sqlite3` set / `_vfs` null → sticky "Invalid VFS state" for the new document's *entire* life (retrying within the same doc never recovers). App-side retry alone (boot v2–v4) only won once Chrome GC'd the old doc (observed > 6.4 s), which is why those generations all still failed the home→`/code` full-page-nav repro.
+- **Rule**:
+  1. Release the pool handles *deterministically* in the outgoing document: the worker's `closeDatabase` calls `vfs.close()` when `databaseIdMap.size === 0`, and the app calls it (web only) from the page-hidden events. A `console.log` in that path is worth its weight in gold for proving the release actually ran — a CDP console buffer spanning N documents otherwise gives "looks patched / looks unpatched" ambiguity.
+  2. Keep `#acquireAccessHandles` **throw-on-blocked** (the blocked file may be the actual DB — skipping it would re-create fresh pool files and silently lose data); retry-after-release is the safe recovery, with the web-only boot retry (≤ ~11.6 s worst case, under the root splash) as safety net.
+  3. Verify a *vendor patch* in the built bundle by its **string literals** — terser strips comments and mangles names, so grep the minified chunk for a unique `console.log`/`Error` message, not patch comments or identifiers.
+- **Date**: 2026-08-24
+
+### 18. [testing] On hard navigation, `beforeunload` fires — `pagehide` often does not
+- **Pattern**: The close-on-navigate hook existed only as a `pagehide` listener; the diagnostic showed no close fired on CDP `Page.navigate`, yet a direct `closeAsync()` call from the page context worked perfectly (probe: `closed-ok` → "Database not found"). On Chromium hard navigation, `beforeunload` fires on the still-alive document while `pagehide` lands as the process is already tearing down.
+- **Rule**: Register the release across `pagehide`, `visibilitychange(hidden)`, AND `beforeunload`, with a **first-wins latch** (`if (closed) return`) so the third is a no-op after the first wins. One `pagehide` listener is not enough — always test against CDP hard navigation specifically: it is the least event-generous case a real user can hit.
+- **Date**: 2026-08-24
+
+### 19. [web] Closing a pool VFS must RE-ARM it — a "drained singleton" is worse than a GC race
+- **Pattern**: Triggering `close()` of expo-sqlite's `AccessHandlePoolVFS` on a plain tab switch (`visibilitychange`) exposed what upstream `close()` had been hiding: it released the six sync handles but left `#directoryHandle` set and the pool maps cleared — and the worker keeps ONE VFS instance as a module singleton for its whole life. Any same-document re-open after close therefore reused a DRAINED VFS (capacity 0): `jOpen` → `cannot create file`, and worse, an in-flight close racing a re-acquire because upstream `#releaseAccessHandles` fired `accessHandle.close()` without awaiting. An upstream quirk amplified it: the wa-sqlite factory result sat in a `maybeInitAsync` function-local, so a second init in the same worker passed `module === undefined` into `AccessHandlePoolVFS.create` (`UTF8ToString` on null). None of this can happen while a browser runs a single tab (the original `close` was never called at all), which is why it only surfaced once close became a first-class path.
+- **Rule**:
+  1. A close that is designed to be FOLLOVED by a re-open must re-arm: release handles (awaiting each `close()` — they're async), then clear the "already initialized" flag so the standard `isReady()`/acquire path re-runs (associations come back from the per-file headers, data intact).
+  2. Audit singleton-with-init-flag objects whenever you add a teardown: `if (_x) return cached; _x = init()` is a trap if `_x` can be cleared without re-running `init`.
+  3. Prove the teardown+re-open pair with an app-level probe (close via the same function the UI calls, then re-boot in the same document, assert the data count) — a cross-document matrix alone will never catch it.
+- **Date**: 2026-08-24
+
 ## Format
 Each lesson should include:
 - **Category tag**: [auth], [db], [testing], [ui], [infra], [content], [expo], [navigation]

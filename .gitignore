@@ -9,6 +9,16 @@ dist/
 web-build/
 expo-env.d.ts
 
+# smoke-test database artifact
+tools/smoke-plumber.db*
+
+# e2e auto-submit run log (regenerated each run)
+tools/autosub-run.log
+tools/_e2e-*.log
+
+# diagnostics console capture (regenerated each run)
+tools/_diag-out.txt
+
 # Native
 .kotlin/
 *.orig.*

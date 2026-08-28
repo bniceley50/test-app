@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, SafeAreaView, TextInput } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAppStore } from '@/lib/store';
-import { getDrillQuestions, getTopicQuestions, recordAttempt, createSession, completeSession } from '@/lib/database';
+import { getDeckWithDue, recordAttempt, createSession, completeSession,
+  getBookmarkMap, toggleBookmarkRef } from '@/lib/database';
+import { answerMatches } from '@/lib/normalize';
 import { uid } from '@/lib/uid';
 
 export default function DrillScreen() {
@@ -11,6 +13,31 @@ export default function DrillScreen() {
   const { drill, startDrill, answerQuestion, nextQuestion, endDrill, showExplanation, showForemanMode } = useAppStore();
   const [questionStartTime, setQuestionStartTime] = useState(Date.now());
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [bookmarkedQs, setBookmarkedQs] = useState<Record<string, boolean>>({});
+  const [fillValue, setFillValue] = useState('');
+
+  // Reset the fill-in-the-blank input whenever the question changes.
+  useEffect(() => {
+    setFillValue('');
+  }, [drill?.currentIndex, drill?.sessionId]);
+
+  useEffect(() => {
+    getBookmarkMap()
+      .then(map => {
+        const rec: Record<string, boolean> = {};
+        map.forEach((row, key) => { if (row.kind === 'question') rec[key] = true; });
+        setBookmarkedQs(rec);
+      })
+      .catch(e => console.error('Failed to load bookmarks:', e));
+  }, []);
+
+  async function handleBookmark() {
+    if (!drill) return;
+    const q = drill.questions[drill.currentIndex];
+    const nowOn = await toggleBookmarkRef('question', q.id, '');
+    setBookmarkedQs(prev => ({ ...prev, [`question:${q.id}`]: nowOn }));
+  }
 
   useEffect(() => {
     loadQuestions();
@@ -18,9 +45,8 @@ export default function DrillScreen() {
 
   async function loadQuestions() {
     try {
-      const questions = params.topic
-        ? await getTopicQuestions(params.topic, 10)
-        : await getDrillQuestions(10);
+      // Spaced-rep: due questions blend to the TOP of the deck.
+      const questions = await getDeckWithDue(10, params.topic || null);
 
       if (questions.length === 0) {
         alert('No questions available yet.');
@@ -28,10 +54,12 @@ export default function DrillScreen() {
         return;
       }
 
-      startDrill(questions, params.topic ? 'topic' : 'drill');
+      setLoadError(false);
+      const sessionId = uid();
+      startDrill(questions, params.topic ? 'topic' : 'drill', sessionId);
 
       const session = {
-        id: uid(),
+        id: sessionId,
         mode: params.topic ? 'topic' as const : 'drill' as const,
         topic_filter: params.topic || null,
         question_count: questions.length,
@@ -43,6 +71,7 @@ export default function DrillScreen() {
       await createSession(session);
     } catch (e) {
       console.error('Error loading questions:', e);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -51,7 +80,10 @@ export default function DrillScreen() {
   async function handleAnswer(selected: string) {
     if (!drill || showExplanation) return;
     const question = drill.questions[drill.currentIndex];
-    const correct = selected === question.answer;
+    // Fill-in-the-blank uses normalized matching ("1/2 in" ≡ "0.5 inch").
+    const correct = question.type === 'fill_blank'
+      ? answerMatches(question.answer, selected)
+      : selected === question.answer;
     const timeMs = Date.now() - questionStartTime;
 
     answerQuestion(selected, correct, timeMs);
@@ -65,6 +97,12 @@ export default function DrillScreen() {
       session_id: drill.sessionId,
       attempted_at: new Date().toISOString(),
     });
+  }
+
+  function handleAnswerFill() {
+    const v = fillValue.trim();
+    if (!v) return;
+    void handleAnswer(v);
   }
 
   async function handleNext() {
@@ -96,7 +134,18 @@ export default function DrillScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading questions...</Text>
+          <Text style={styles.loadingText}>
+            {loadError ? 'Could not load questions — check the console, or go back and try again.' : 'Loading questions...'}
+          </Text>
+          {loadError && (
+            <TouchableOpacity
+              style={{ marginTop: 16, backgroundColor: '#4fc3f7', borderRadius: 12, paddingHorizontal: 24, paddingVertical: 12 }}
+              onPress={loadQuestions}
+              activeOpacity={0.8}
+            >
+              <Text style={{ color: '#1a1a2e', fontSize: 15, fontWeight: 'bold' }}>Try again</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </SafeAreaView>
     );
@@ -138,7 +187,35 @@ export default function DrillScreen() {
         {/* Question */}
         <Text style={styles.questionText}>{question.prompt}</Text>
 
-        {/* Choices */}
+        {/* Choices (MCQ) or fill-in-the-blank input */}
+        {question.type === 'fill_blank' ? (
+          <View>
+            {fillValue.trim().length > 0 && (
+              <Text style={{ color: '#6c7293', fontSize: 12, marginBottom: 6 }}>
+                Answer can be any reasonable form (e.g. "1/2 in" ≡ "0.5 inch").
+              </Text>
+            )}
+            <TextInput
+              style={styles.fillInput}
+              placeholder="Type your answer…"
+              placeholderTextColor="#5a607a"
+              value={fillValue}
+              onChangeText={setFillValue}
+              autoCapitalize="words"
+              autoFocus={false}
+              multiline
+              textAlignVertical="center"
+            />
+            <TouchableOpacity
+              style={styles.nextButton}
+              onPress={() => handleAnswerFill()}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.nextButtonText}>Check answer</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View>
         {question.choices.map((choice, index) => {
           const letter = String.fromCharCode(65 + index);
           const isSelected = answered?.selected === choice;
@@ -172,6 +249,8 @@ export default function DrillScreen() {
             </TouchableOpacity>
           );
         })}
+          </View>
+        )}
 
         {/* Explanation */}
         {showExplanation && (
@@ -179,6 +258,21 @@ export default function DrillScreen() {
             <Text style={[styles.resultBanner, answered?.correct ? styles.correctBanner : styles.wrongBanner]}>
               {answered?.correct ? 'Correct!' : 'Wrong'}
             </Text>
+
+            {question.type === 'fill_blank' && (
+              <View style={styles.fillResult}>
+                <Text style={styles.fillResultLabel}>Your answer</Text>
+                <Text style={[styles.fillResultText, { color: answered?.correct ? '#4caf50' : '#f44336' }]}>
+                  {answered?.selected || '(blank)'}
+                </Text>
+                {!answered?.correct && (
+                  <>
+                    <Text style={styles.fillResultLabel}>Correct answer</Text>
+                    <Text style={[styles.fillResultText, { color: '#4caf50' }]}>{question.answer}</Text>
+                  </>
+                )}
+              </View>
+            )}
 
             <Text style={styles.explanationTitle}>Why?</Text>
             <Text style={styles.explanationText}>{question.explanation}</Text>
@@ -196,6 +290,27 @@ export default function DrillScreen() {
                 <Text style={styles.codeRefSection}>Section {question.code_section}</Text>
               </View>
             )}
+
+            <TouchableOpacity
+              style={styles.bookmarkBtn}
+              onPress={handleBookmark}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              activeOpacity={0.7}
+            >
+              <Text style={[
+                styles.bookmarkStar,
+                { color: bookmarkedQs[`question:${question.id}`] ? '#4fc3f7' : '#5a607a' },
+              ]}>
+                {bookmarkedQs[`question:${question.id}`] ? '★' : '☆'}
+              </Text>
+              <Text style={{
+                color: bookmarkedQs[`question:${question.id}`] ? '#4fc3f7' : '#8892b0',
+                fontSize: 13,
+                marginLeft: 6,
+              }}>
+                {bookmarkedQs[`question:${question.id}`] ? 'Bookmarked' : 'Bookmark for later'}
+              </Text>
+            </TouchableOpacity>
 
             <TouchableOpacity style={styles.nextButton} onPress={handleNext} activeOpacity={0.8}>
               <Text style={styles.nextButtonText}>
@@ -423,6 +538,43 @@ const styles = StyleSheet.create({
     color: '#aaa',
     fontSize: 13,
     lineHeight: 18,
+  },
+  bookmarkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  bookmarkStar: {
+    fontSize: 18,
+  },
+  fillInput: {
+    backgroundColor: '#1a1a2e',
+    borderWidth: 1,
+    borderColor: '#2a2a4e',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: '#fff',
+    fontSize: 16,
+    minHeight: 56,
+    marginBottom: 12,
+  },
+  fillResult: {
+    marginBottom: 14,
+  },
+  fillResultLabel: {
+    color: '#8892b0',
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+    marginTop: 4,
+  },
+  fillResultText: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 6,
   },
   nextButton: {
     backgroundColor: '#4fc3f7',

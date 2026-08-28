@@ -1,14 +1,124 @@
 import * as SQLite from 'expo-sqlite';
+import { Platform } from 'react-native';
 import { Question, QuestionAttempt, StudySession, CodeSection, TopicStats } from './types';
+import { uid } from './uid';
 
-let db: SQLite.SQLiteDatabase;
+let db: SQLite.SQLiteDatabase | undefined;
+/**
+ * Module-level single-flight boot: RootLayout and each tab's load() all await
+ * the SAME promise instead of firing concurrent opens.
+ *
+ * Why boot can fail on web: expo-sqlite on web runs wa-sqlite in a web worker
+ * backed by `AccessHandlePoolVFS`, which keeps 6 OPFS sync access handles
+ * open for the worker's whole life. Chromium allows only one open sync
+ * handle per file at a time, so a hard full-page navigation (deep link, F5 on
+ * a non-home route, or a link out and back) can open the NEW document while
+ * the PREVIOUS document's worker still holds its handles →
+ * `createSyncAccessHandle` throws `NoModificationAllowedError`, and because
+ * the failure happens inside the worker's one-shot `AccessHandlePoolVFS.
+ * create()`, every later open in THAT document reports the confusing
+ * `Invalid VFS state`. The stale worker's handles die on GC (well within a
+ * few seconds), so a backoffed retry inside the same document recovers.
+ * Native (real SQLite files) has no handle pool and succeeds first try.
+ */
+let bootPromise: Promise<SQLite.SQLiteDatabase> | null = null;
+
+function isWebPlatform(): boolean {
+  return Platform.OS === 'web';
+}
+
+// Escalating backoff (seconds) between web boot attempts. Total ≈ 11.6s —
+// deliberately longer than the observed ~10s that Chrome holds a garbage
+// previous document's worker before its OPFS sync handles are released.
+const WEB_BOOT_RETRY_MS = [800, 800, 1000, 1000, 1500, 1500, 2000, 2000, 2000];
+const WEB_BOOT_MAX_ATTEMPTS = WEB_BOOT_RETRY_MS.length + 1;
+
+function bootDatabase(): Promise<SQLite.SQLiteDatabase> {
+  if (!bootPromise) {
+    bootPromise = (async () => {
+      const web = isWebPlatform();
+      const maxAttempts = web ? WEB_BOOT_MAX_ATTEMPTS : 1;
+      let lastErr: unknown = null;
+      let resolved: SQLite.SQLiteDatabase | undefined;
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        try {
+          if (!db) {
+            db = await SQLite.openDatabaseAsync('plumber_prep_v3.db');
+            // Test seam: expose the LIVE handle (set right after a successful
+            // open) so tools (db-smoke, live-web-check) observe the working
+            // DB. Set only when absent → a later full-page navigation's boot,
+            // even a failing one, never clobbers a still-live handle.
+            const scope = globalThis as Record<string, unknown>;
+            if (!scope['__plumberDb']) scope['__plumberDb'] = db;
+            // Same-document re-acquisition probe for the web close patch:
+            // the page's own close+reboot (tab switch → closeDatabase() →
+            // any screen's getDatabase()) must be reproducible in CDP.
+            scope['__plumberBoot'] = bootDatabase;
+            scope['__plumberClose'] = closeDatabase;
+            await initializeDatabase(db);
+          }
+          resolved = db;
+          break;
+        } catch (e) {
+          lastErr = e;
+          if (!web || attempt === maxAttempts - 1) break;
+          if (web) {
+            // Discard the half-initialized handle so the next attempt opens
+            // FRESH (expo-sqlite web stands up a new worker + VFS per
+            // openDatabaseAsync; a failed attempt's VFS never registers).
+            db = undefined;
+          }
+          console.warn(
+            `[plumber-db] boot attempt ${attempt + 1}/${maxAttempts} failed, retrying in ${WEB_BOOT_RETRY_MS[attempt]}ms`,
+            e
+          );
+          await new Promise((r) => setTimeout(r, WEB_BOOT_RETRY_MS[attempt]));
+        }
+      }
+      if (resolved) return resolved;
+      throw lastErr;
+    })().catch((e) => {
+      // Release the latch so a later call — the "Load again" retry on any
+      // screen, a tab switch, a second root init — starts a FRESH boot past
+      // the (now likely freed) stale handles.
+      bootPromise = null;
+      throw e;
+    });
+  }
+  return bootPromise;
+}
 
 export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
-  if (!db) {
-    db = await SQLite.openDatabaseAsync('plumber_prep_v3.db');
-    await initializeDatabase(db);
+  return bootDatabase();
+}
+
+/**
+ * Exposed for web diagnostics via the `__plumberBoot` / `__plumberClose`
+ * globalThis seam set in bootDatabase: on web, close + re-boot in the SAME
+ * document exercises the worker patch's VFS re-acquisition (the tab-switch
+ * case): the persistent VFS was closed and its pool maps cleared, so the
+ * next open must re-create the VFS and re-acquire all six OPFS access
+ * handles from disk.
+ */
+export const __plumber = { getDatabase, closeDatabase };
+
+/**
+ * Relinquish the DB and, on web, release expo-sqlite's 6 OPFS sync access
+ * handles held by this document's worker. Called from the root layout on
+ * `pagehide` so that a hard full-page navigation (deep link, reload, leaving
+ * the site) hands the pool files back to the incoming document WITHOUT
+ * waiting for Chrome to garbage-collect this one. No-op-safe on native.
+ */
+export async function closeDatabase(): Promise<void> {
+  if (db) {
+    try {
+      await db.closeAsync();
+    } catch {
+      // best-effort teardown at page-hide time
+    }
+    db = undefined;
   }
-  return db;
+  bootPromise = null;
 }
 
 async function initializeDatabase(database: SQLite.SQLiteDatabase): Promise<void> {
@@ -75,10 +185,23 @@ async function initializeDatabase(database: SQLite.SQLiteDatabase): Promise<void
       keywords TEXT NOT NULL DEFAULT '[]'
     );
 
+    CREATE TABLE IF NOT EXISTS bookmarks (
+      id TEXT PRIMARY KEY,
+      kind TEXT NOT NULL,
+      question_id TEXT NOT NULL DEFAULT '',
+      code_section_id TEXT NOT NULL DEFAULT '',
+      note TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(kind, question_id, code_section_id)
+      -- refs are NOT-NULL with '' for the unused column (SQLite uniques treat
+      -- NULLs as distinct), so integrity is enforced app-side, not by FKs
+    );
+
     CREATE INDEX IF NOT EXISTS idx_questions_topic ON questions(topic);
     CREATE INDEX IF NOT EXISTS idx_attempts_question ON question_attempts(question_id);
     CREATE INDEX IF NOT EXISTS idx_attempts_session ON question_attempts(session_id);
     CREATE INDEX IF NOT EXISTS idx_progress_next_review ON user_progress(next_review);
+    CREATE INDEX IF NOT EXISTS idx_bookmarks_kind ON bookmarks(kind);
   `);
 }
 
@@ -121,12 +244,40 @@ export async function seedCodeSections(sections: CodeSection[]): Promise<void> {
   }
 }
 
-export async function getDrillQuestions(count: number = 10): Promise<Question[]> {
+/**
+ * Spaced-rep blended deck (locked decision: due items go to the TOP of every
+ * deck, not a separate entry). Due = `next_review <= now`; ordered most
+ * overdue first, then lowest confidence (times_correct, accuracy). Filled to
+ * `count` with random verified questions excluding the due ones.
+ */
+export async function getDeckWithDue(count: number, topic: string | null = null): Promise<Question[]> {
   const db = await getDatabase();
-  const rows = await db.getAllAsync<any>(
-    `SELECT * FROM questions WHERE verified = 1 ORDER BY RANDOM() LIMIT ?`, count
+  const topicClause = topic ? 'AND q.topic = ?' : '';
+  const dueParams: (string | number)[] = topic ? [topic, count] : [count];
+  const dueRows = await db.getAllAsync<any>(
+    `SELECT q.* FROM questions q
+     INNER JOIN user_progress p ON q.id = p.question_id
+     WHERE q.verified = 1 ${topicClause} AND p.next_review <= datetime('now')
+     ORDER BY p.next_review ASC, p.times_correct ASC, p.accuracy ASC
+     LIMIT ?`,
+    ...dueParams
   );
-  return rows.map(parseQuestionRow);
+  const due = dueRows.map(parseQuestionRow);
+
+  const restExcl = due.map(q => q.id);
+  const notIn = restExcl.length ? `AND id NOT IN (${restExcl.map(() => '?').join(',')})` : '';
+  const restParams: (string | number)[] = [
+    ...restExcl,
+    ...(topic ? [topic] : []),
+    Math.max(0, count - due.length),
+  ];
+  const restRows = await db.getAllAsync<any>(
+    `SELECT * FROM questions
+     WHERE verified = 1 ${notIn} ${topic ? 'AND topic = ?' : ''}
+     ORDER BY RANDOM() LIMIT ?`,
+    ...restParams
+  );
+  return [...due, ...restRows.map(parseQuestionRow)];
 }
 
 export async function getTopicQuestions(topic: string, count: number = 10): Promise<Question[]> {
@@ -144,14 +295,6 @@ export async function getActiveMissedQuestions(): Promise<Question[]> {
      INNER JOIN user_progress p ON q.id = p.question_id
      WHERE p.missed_active = 1
      ORDER BY p.last_seen ASC`
-  );
-  return rows.map(parseQuestionRow);
-}
-
-export async function getMockExamQuestions(count: number = 50): Promise<Question[]> {
-  const db = await getDatabase();
-  const rows = await db.getAllAsync<any>(
-    `SELECT * FROM questions WHERE verified = 1 ORDER BY RANDOM() LIMIT ?`, count
   );
   return rows.map(parseQuestionRow);
 }
@@ -328,8 +471,8 @@ export async function searchCodeSections(query: string): Promise<CodeSection[]> 
   const db = await getDatabase();
   const pattern = `%${query}%`;
   const rows = await db.getAllAsync<any>(
-    `SELECT * FROM code_sections WHERE title LIKE ? OR short_summary LIKE ? OR keywords LIKE ? ORDER BY section`,
-    pattern, pattern, pattern
+    `SELECT * FROM code_sections WHERE section LIKE ? OR title LIKE ? OR short_summary LIKE ? OR keywords LIKE ? ORDER BY section`,
+    pattern, pattern, pattern, pattern
   );
   return rows.map(parseCodeSectionRow);
 }
@@ -347,9 +490,21 @@ function parseCodeSectionRow(row: any): CodeSection {
 export async function getQuestionsForCodeSection(sectionRef: string): Promise<Question[]> {
   const db = await getDatabase();
   const rows = await db.getAllAsync<any>(
-    `SELECT * FROM questions WHERE code_section = ?`, sectionRef
+    `SELECT * FROM questions WHERE code_section = ? AND verified = 1`, sectionRef
   );
   return rows.map(parseQuestionRow);
+}
+
+export async function getQuestionById(id: string): Promise<Question | null> {
+  const db = await getDatabase();
+  const row = await db.getFirstAsync<any>('SELECT * FROM questions WHERE id = ?', id);
+  return row ? parseQuestionRow(row) : null;
+}
+
+export async function getCodeSectionById(id: string): Promise<CodeSection | null> {
+  const db = await getDatabase();
+  const row = await db.getFirstAsync<any>('SELECT * FROM code_sections WHERE id = ?', id);
+  return row ? parseCodeSectionRow(row) : null;
 }
 
 // --- Bookmark Queries ---
@@ -368,4 +523,87 @@ export async function toggleBookmark(questionId: string): Promise<boolean> {
     questionId, newValue, newValue
   );
   return newValue === 1;
+}
+
+// --- New Bookmark Table (bookmarks: kind + ref + editable note) ---
+
+export type BookmarkKind = 'question' | 'code_section';
+
+export interface BookmarkRow {
+  id: string;
+  kind: BookmarkKind;
+  question_id: string;
+  code_section_id: string;
+  note: string;
+  created_at: string;
+}
+
+function bookmarkKey(kind: BookmarkKind, questionId: string, codeSectionId: string): string {
+  return `${kind}:${kind === 'question' ? questionId : codeSectionId}`;
+}
+
+/**
+ * Toggle a bookmark for a question or code section.
+ * Returns true if the ref is now bookmarked.
+ */
+export async function toggleBookmarkRef(
+  kind: BookmarkKind,
+  questionId: string = '',
+  codeSectionId: string = ''
+): Promise<boolean> {
+  const db = await getDatabase();
+  const qid = kind === 'question' ? questionId : '';
+  const cid = kind === 'code_section' ? codeSectionId : '';
+
+  const existing = await db.getFirstAsync<{ id: string }>(
+    'SELECT id FROM bookmarks WHERE kind = ? AND question_id = ? AND code_section_id = ?',
+    kind, qid, cid
+  );
+  if (existing) {
+    await db.runAsync('DELETE FROM bookmarks WHERE id = ?', existing.id);
+    return false;
+  }
+  await db.runAsync(
+    'INSERT INTO bookmarks (id, kind, question_id, code_section_id) VALUES (?, ?, ?, ?)',
+    uid(), kind, qid, cid
+  );
+  return true;
+}
+
+/** Map of bookmarkKey -> row, for fast lookups in a screen. */
+export async function getBookmarkMap(): Promise<Map<string, BookmarkRow>> {
+  const db = await getDatabase();
+  const rows = await db.getAllAsync<BookmarkRow>(
+    'SELECT id, kind, question_id, code_section_id, note, created_at FROM bookmarks ORDER BY created_at DESC'
+  );
+  const map = new Map<string, BookmarkRow>();
+  for (const r of rows) map.set(bookmarkKey(r.kind, r.question_id, r.code_section_id), r);
+  return map;
+}
+
+/** All bookmarks, for the P3 Bookmarks screen (questions + sections, note included). */
+export async function getBookmarks(): Promise<BookmarkRow[]> {
+  const db = await getDatabase();
+  return db.getAllAsync<BookmarkRow>(
+    'SELECT id, kind, question_id, code_section_id, note, created_at FROM bookmarks ORDER BY created_at DESC'
+  );
+}
+
+/** Save an editable note on an existing bookmark (P3 Bookmarks screen). */
+export async function setBookmarkNote(bookmarkId: string, note: string): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync('UPDATE bookmarks SET note = ? WHERE id = ?', note, bookmarkId);
+}
+
+/** Question counts per code_section, for the Code Reference screen (one query). */
+export async function getQuestionCountsByCodeSection(): Promise<Map<string, number>> {
+  const db = await getDatabase();
+  const rows = await db.getAllAsync<{ code_section: string; n: number }>(
+    `SELECT code_section, COUNT(*) as n
+     FROM questions WHERE verified = 1 AND code_section != ''
+     GROUP BY code_section`
+  );
+  const map = new Map<string, number>();
+  for (const r of rows) map.set(r.code_section, r.n);
+  return map;
 }

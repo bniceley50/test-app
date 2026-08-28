@@ -5,7 +5,7 @@ import { uid } from './uid';
 interface AppStore {
   // Drill state
   drill: DrillState | null;
-  startDrill: (questions: Question[], mode: SessionMode) => void;
+  startDrill: (questions: Question[], mode: SessionMode, sessionId?: string) => void;
   answerQuestion: (selected: string, correct: boolean, timeMs: number) => void;
   nextQuestion: () => void;
   endDrill: () => void;
@@ -32,12 +32,14 @@ interface AppStore {
 export const useAppStore = create<AppStore>((set, get) => ({
   // Drill
   drill: null,
-  startDrill: (questions, mode) => set({
+  startDrill: (questions, mode, sessionId) => set({
     drill: {
       questions,
       currentIndex: 0,
       answers: [],
-      sessionId: uid(),
+      // Screens pass the id of the study_sessions row they created so
+      // completeSession() updates the row that actually exists.
+      sessionId: sessionId ?? uid(),
       mode,
       startTime: Date.now(),
     },
